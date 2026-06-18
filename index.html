@@ -3,63 +3,55 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZinoraHub - Streaming Films, Séries & Animés</title>
-
+    <title>MonoFly</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
     <header class="header" id="mainHeader">
         <div class="header-inner">
-            <a href="#" class="logo" data-testid="logo-yopflix">YOPFLIX</a>
-
-            <nav class="nav-menu" data-testid="nav-menu">
-                <a href="#" class="nav-link active" data-filter="all" data-testid="nav-all">Accueil</a>
-                <a href="#" class="nav-link" data-filter="film" data-testid="nav-film">Films</a>
-                <a href="#" class="nav-link" data-filter="serie" data-testid="nav-serie">Séries</a>
-                <a href="#" class="nav-link" data-filter="anime" data-testid="nav-anime">Animés</a>
-                <a href="#" class="nav-link" data-filter="reseaux" data-testid="nav-reseaux">Réseaux</a>
+            <a href="#" class="logo">MonoFly</a>
+            <nav class="nav-menu">
+                <a href="#" class="nav-link active" data-filter="all">Accueil</a>
+                <a href="#" class="nav-link" data-filter="film">Films</a>
+                <a href="#" class="nav-link" data-filter="serie">Séries</a>
+                <a href="#" class="nav-link" data-filter="anime">Animés</a>
+                <a href="#" class="nav-link" data-filter="reseaux">Réseaux</a>
             </nav>
-
             <div class="header-actions">
-                <button class="btn-icon" id="searchToggle" data-testid="search-toggle" aria-label="Rechercher">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                </button>
+                <button class="btn-icon" id="searchToggle"><i class="fa-solid fa-magnifying-glass"></i></button>
             </div>
         </div>
-
-        <div class="search-bar" id="searchBar" data-testid="search-bar">
+        <div class="search-bar" id="searchBar">
             <div class="search-bar-inner">
-                <i class="fa-solid fa-magnifying-glass search-input-icon"></i>
-                <input type="text" id="searchInput" placeholder="Titres, genres, mots-clés..." data-testid="search-input" />
-                <button class="btn-icon" id="searchClose" data-testid="search-close" aria-label="Fermer la recherche">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchInput" placeholder="Rechercher un titre, résumé..." />
+                <button class="btn-icon" id="searchClose"><i class="fa-solid fa-xmark"></i></button>
             </div>
         </div>
     </header>
 
-    <main class="main-content" id="mainContent" data-testid="main-content">
-        </main>
-
-    <div id="medias-source" style="display: none;"></div>
+    <main class="main-content" id="mainContent">
+        <!-- Rendu dynamique -->
+    </main>
 
     <footer class="footer">
         <div class="footer-inner">
-            <div class="footer-brand">YOPFLIX</div>
-            <p class="footer-text">© 2026 YOPFLIX. Tous droits réservés.</p>
+            <div class="footer-brand">MonoFly</div>
+            <p class="footer-text">© 2026 MonoFly. Tous droits réservés.</p>
         </div>
     </footer>
 
+    <!-- Chargement des bases de données -->
     <script src="films.js"></script>
     <script src="series.js"></script>
     <script src="animes.js"></script>
+    
+    <!-- Script principal -->
     <script src="script.js"></script>
 </body>
 </html>
