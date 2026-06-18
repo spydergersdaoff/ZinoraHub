@@ -1,17 +1,12 @@
 /* =========================================================
-   YOPFLIX — script.js
-   - Lit les médias depuis films.js, series.js et animes.js
-   - Récupère les métadonnées via l'API TheMovieDB
-   - Gère la navigation, la recherche, le lecteur vidéo
+   MonoFly — script.js
    ========================================================= */
 
-// ---------- CONFIG API TMDB ----------
 const TMDB_API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c';
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w500';
 const LANG = 'fr-FR';
 
-// ---------- LIBELLÉS SECTIONS ----------
 const SECTION_LABELS = {
     'a-ne-pas-manquer': 'A ne pas manquer',
     'tendances':        'Tendances actuelles',
@@ -25,10 +20,8 @@ const CATEGORY_LABELS = {
     'anime': 'Animés',
 };
 
-// ---------- STATE ----------
 let MEDIAS = []; 
 
-// ---------- DOM ----------
 const $main = document.getElementById('mainContent');
 const $searchBar = document.getElementById('searchBar');
 const $searchToggle = document.getElementById('searchToggle');
@@ -37,44 +30,126 @@ const $searchInput = document.getElementById('searchInput');
 const $navLinks = document.querySelectorAll('.nav-link');
 
 // =========================================================
-// 1) CHARGEMENT DES MÉDIAS DEPUIS LES FICHIERS JS
+// POPUP DE BIENVENUE STYLÉ (LIENS ET CHOIX D'AFFICHAGE)
 // =========================================================
-function loadMediasFromJS() {
-    let list = [];
-    let idCounter = 0;
+function showWelcomePopup() {
+    // Si l'utilisateur a choisi de ne plus l'afficher, on stoppe direct
+    if (localStorage.getItem('hideAdblockPopup') === 'true') {
+        return;
+    }
 
-    if (typeof FILMS_DATA !== 'undefined') {
-        FILMS_DATA.forEach(item => {
-            list.push({ id: idCounter++, category: 'film', ...item, poster: null, rating: null, releaseYear: null, overview: '', runtime: null, seasons: null, tmdbType: null, loaded: false });
-        });
-    }
-    if (typeof SERIES_DATA !== 'undefined') {
-        SERIES_DATA.forEach(item => {
-            list.push({ id: idCounter++, category: 'serie', ...item, poster: null, rating: null, releaseYear: null, overview: '', runtime: null, seasons: null, tmdbType: null, loaded: false });
-        });
-    }
-    if (typeof ANIMES_DATA !== 'undefined') {
-        ANIMES_DATA.forEach(item => {
-            list.push({ id: idCounter++, category: 'anime', ...item, poster: null, rating: null, releaseYear: null, overview: '', runtime: null, seasons: null, tmdbType: null, loaded: false });
-        });
-    }
-    return list;
+    const popupOverlay = document.createElement('div');
+    popupOverlay.style.position = 'fixed';
+    popupOverlay.style.top = '0';
+    popupOverlay.style.left = '0';
+    popupOverlay.style.width = '100%';
+    popupOverlay.style.height = '100%';
+    popupOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+    popupOverlay.style.display = 'flex';
+    popupOverlay.style.justifyContent = 'center';
+    popupOverlay.style.alignItems = 'center';
+    popupOverlay.style.zIndex = '99999';
+    popupOverlay.style.backdropFilter = 'blur(8px)';
+    popupOverlay.style.padding = '20px';
+
+    popupOverlay.innerHTML = `
+        <div style="background: linear-gradient(135deg, #1e1e1e 0%, #141414 100%); border: 2px solid #e50914; border-radius: 16px; padding: 35px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(229, 9, 20, 0.3); font-family: 'Inter', sans-serif; color: #fff;">
+            <div style="background: rgba(229, 9, 20, 0.1); width: 70px; height: 70px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 20px;">
+                <i class="fa-solid fa-shield-halved" style="color: #e50914; font-size: 32px;"></i>
+            </div>
+            <h2 style="font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 1px; margin-bottom: 10px; color: #fff;">Attention aux publicités !</h2>
+            <p style="font-size: 14px; line-height: 1.6; color: #cccccc; margin-bottom: 25px;">
+                Le lecteur externe contient des pubs. Pour regarder vos vidéos tranquillement, cliquez sur l'un de ces bloqueurs gratuits pour l'installer :
+            </p>
+            
+            <div style="text-align: left; margin-bottom: 30px; display: flex; flex-direction: column; gap: 12px;">
+                <a href="https://ublockorigin.com/" target="_blank" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; transition: all 0.2s;"><span><i class="fa-solid fa-download" style="color: #e50914; margin-right: 10px;"></i> uBlock Origin</span> <span style="font-size: 11px; color: #2ecc71; background: rgba(46,204,113,0.1); padding: 2px 8px; border-radius: 4px;">Top Recommandé</span></a>
+                <a href="https://adguard.com/" target="_blank" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; transition: all 0.2s;"><i class="fa-solid fa-download" style="color: #e50914; margin-right: 10px;"></i> AdGuard</a>
+                <a href="https://brave.com/" target="_blank" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; transition: all 0.2s;"><i class="fa-solid fa-download" style="color: #e50914; margin-right: 10px;"></i> Brave Browser (Navigateur anti-pub)</a>
+                <a href="https://adblockplus.org/" target="_blank" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; transition: all 0.2s;"><i class="fa-solid fa-download" style="color: #e50914; margin-right: 10px;"></i> Adblock Plus</a>
+                <a href="https://www.ghostery.com/" target="_blank" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; transition: all 0.2s;"><i class="fa-solid fa-download" style="color: #e50914; margin-right: 10px;"></i> Ghostery</a>
+            </div>
+
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button id="btnNextTime" style="background-color: transparent; color: #aaa; border: 1px solid #444; padding: 12px 20px; font-size: 14px; font-weight: 600; border-radius: 30px; cursor: pointer; flex: 1; transition: all 0.2s;">Voir la prochaine fois</button>
+                <button id="btnClosePopup" style="background-color: #e50914; color: #fff; border: none; padding: 12px 20px; font-size: 14px; font-weight: 700; border-radius: 30px; cursor: pointer; flex: 1; transition: all 0.2s; text-transform: uppercase;">Ne plus afficher</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(popupOverlay);
+
+    // Effet hover sur les liens de téléchargement
+    popupOverlay.querySelectorAll('a').forEach(link => {
+        link.onmouseover = () => { link.style.background = 'rgba(255,255,255,0.1)'; link.style.borderColor = '#e50914'; };
+        link.onmouseout = () => { link.style.background = 'rgba(255,255,255,0.05)'; link.style.borderColor = 'transparent'; };
+    });
+
+    const btnClose = document.getElementById('btnClosePopup');
+    const btnNext = document.getElementById('btnNextTime');
+
+    btnClose.onmouseover = () => btnClose.style.backgroundColor = '#b80710';
+    btnClose.onmouseout = () => btnClose.style.backgroundColor = '#e50914';
+    btnNext.onmouseover = () => { btnNext.style.color = '#fff'; btnNext.style.borderColor = '#aaa'; };
+    btnNext.onmouseout = () => { btnNext.style.color = '#aaa'; btnNext.style.borderColor = '#444'; };
+
+    // Fonction pour fermer proprement avec animation
+    const fadeOut = () => {
+        popupOverlay.style.opacity = '0';
+        popupOverlay.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => popupOverlay.remove(), 300);
+    };
+
+    // BOUTON "Ne plus afficher" -> On enregistre dans la mémoire et on ferme
+    btnClose.addEventListener('click', () => {
+        localStorage.setItem('hideAdblockPopup', 'true');
+        fadeOut();
+    });
+
+    // BOUTON "Voir la prochaine fois" -> On ferme juste pour cette session
+    btnNext.addEventListener('click', () => {
+        fadeOut();
+    });
 }
 
 // =========================================================
-// 2) APPEL TMDB
+// LOGIQUE FLUX DE DONNÉES
 // =========================================================
+function readMediasFromJS() {
+    let combined = [];
+
+    if (typeof FILMS_DATA !== 'undefined' && Array.isArray(FILMS_DATA)) {
+        FILMS_DATA.forEach(item => combined.push({ ...item, category: 'film' }));
+    }
+    if (typeof SERIES_DATA !== 'undefined' && Array.isArray(SERIES_DATA)) {
+        SERIES_DATA.forEach(item => combined.push({ ...item, category: 'serie' }));
+    }
+    if (typeof ANIMES_DATA !== 'undefined' && Array.isArray(ANIMES_DATA)) {
+        ANIMES_DATA.forEach(item => combined.push({ ...item, category: 'anime' }));
+    }
+
+    return combined.map((item, idx) => ({
+        id: idx,
+        title:    item.title || '',
+        embed:    item.embed || '',
+        category: item.category,
+        section:  item.section || 'a-ne-pas-manquer',
+        year:     item.year || null,
+        poster: null, rating: null, releaseYear: null,
+        overview: '', runtime: null, seasons: null, tmdbType: null,
+        loaded: false,
+    }));
+}
+
 async function fetchTMDB(media) {
     const isMovie = media.category === 'film';
     const endpoint = isMovie ? 'search/movie' : 'search/tv';
-    const yearParam = media.year
-        ? (isMovie ? `&year=${media.year}` : `&first_air_date_year=${media.year}`)
-        : '';
+    const yearParam = media.year ? (isMovie ? `&year=${media.year}` : `&first_air_date_year=${media.year}`) : '';
 
     try {
         const url = `${TMDB_BASE}/${endpoint}?api_key=${TMDB_API_KEY}&language=${LANG}&query=${encodeURIComponent(media.title)}${yearParam}`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error('TMDB search failed');
+        if (!res.ok) throw new Error('TMDB error');
         const data = await res.json();
         const hit = (data.results || [])[0];
         if (!hit) return;
@@ -85,23 +160,18 @@ async function fetchTMDB(media) {
         media.overview    = hit.overview || '';
         media.tmdbId      = hit.id;
         media.tmdbType    = isMovie ? 'movie' : 'tv';
-        media.backdrop    = hit.backdrop_path ? `https://image.tmdb.org/t/p/w1280${hit.backdrop_path}` : null;
 
         try {
             const detailUrl = `${TMDB_BASE}/${media.tmdbType}/${media.tmdbId}?api_key=${TMDB_API_KEY}&language=${LANG}`;
             const detailRes = await fetch(detailUrl);
             if (detailRes.ok) {
                 const detail = await detailRes.json();
-                if (isMovie) {
-                    media.runtime = detail.runtime || null;
-                } else {
-                    media.seasons = detail.number_of_seasons || null;
-                }
+                if (isMovie) media.runtime = detail.runtime || null;
+                else media.seasons = detail.number_of_seasons || null;
             }
         } catch (_) {}
-
     } catch (err) {
-        console.warn(`[TMDB] Échec pour "${media.title}"`, err);
+        console.warn(err);
     } finally {
         media.loaded = true;
     }
@@ -111,42 +181,24 @@ async function loadAllTMDB() {
     await Promise.all(MEDIAS.map(fetchTMDB));
 }
 
-// =========================================================
-// 3) FORMATAGE DES DONNÉES
-// =========================================================
-function formatRuntime(min) {
-    if (!min) return null;
-    const h = Math.floor(min / 60);
-    const m = min % 60;
-    return h ? `${h}h${m.toString().padStart(2, '0')}` : `${m}min`;
-}
-
 function formatDuration(media) {
-    if (media.category === 'film') return formatRuntime(media.runtime) || '—';
-    if (media.seasons) return `${media.seasons} S.`;
-    return '—';
+    if (media.category === 'film') {
+        if (!media.runtime) return '—';
+        const h = Math.floor(media.runtime / 60);
+        const m = media.runtime % 60;
+        return h ? `${h}h${m.toString().padStart(2, '0')}` : `${m}min`;
+    }
+    return media.seasons ? `${media.seasons} S.` : '—';
 }
 
 function categoryBadge(cat) {
-    if (cat === 'film')  return 'FILM';
-    if (cat === 'serie') return 'SÉRIE';
-    if (cat === 'anime') return 'ANIMÉ';
-    return cat.toUpperCase();
+    return cat === 'film' ? 'FILM' : cat === 'serie' ? 'SÉRIE' : 'ANIMÉ';
 }
 
-// =========================================================
-// 4) RENDU HTML
-// =========================================================
 function cardHTML(media) {
-    const poster = media.poster
-        ? `<img src="${media.poster}" alt="${escapeHTML(media.title)}" loading="lazy" />`
-        : `<div class="card-poster-placeholder"><i class="fa-solid fa-film"></i></div>`;
-    const rating = media.rating || '—';
-    const year   = media.releaseYear || media.year || '—';
-    const dur    = formatDuration(media);
-
+    const poster = media.poster ? `<img src="${media.poster}" alt="${escapeHTML(media.title)}" loading="lazy" />` : `<div class="card-poster-placeholder"><i class="fa-solid fa-film"></i></div>`;
     return `
-      <div class="card" data-id="${media.id}" data-testid="card-${media.id}">
+      <div class="card" data-id="${media.id}">
         <div class="card-poster">
           ${poster}
           <span class="badge-category">${categoryBadge(media.category)}</span>
@@ -154,9 +206,9 @@ function cardHTML(media) {
         <div class="card-info">
           <h3 class="card-title">${escapeHTML(media.title)}</h3>
           <div class="card-meta">
-            <span><i class="fa-solid fa-star"></i> ${rating}</span>
-            <span><i class="fa-regular fa-calendar"></i> ${year}</span>
-            <span><i class="fa-regular fa-clock"></i> ${dur}</span>
+            <span><i class="fa-solid fa-star"></i> ${media.rating || '—'}</span>
+            <span><i class="fa-regular fa-calendar"></i> ${media.releaseYear || media.year || '—'}</span>
+            <span><i class="fa-regular fa-clock"></i> ${formatDuration(media)}</span>
           </div>
         </div>
       </div>
@@ -166,130 +218,80 @@ function cardHTML(media) {
 function rowHTML(title, items) {
     if (!items.length) return '';
     return `
-      <section class="row" data-testid="row-${slug(title)}">
+      <section class="row">
         <div class="row-header">
           <h2 class="row-title">${escapeHTML(title)}</h2>
           <span class="row-count"># ${items.length} titre${items.length > 1 ? 's' : ''}</span>
         </div>
-        <div class="row-grid">
-          ${items.map(cardHTML).join('')}
-        </div>
+        <div class="row-grid">${items.map(cardHTML).join('')}</div>
       </section>
     `;
 }
 
-// =========================================================
-// 5) VUES
-// =========================================================
 function renderHome(filter = 'all') {
     let list = MEDIAS;
     if (filter !== 'all') list = MEDIAS.filter(m => m.category === filter);
 
     if (!list.length) {
-        $main.innerHTML = `
-          <div class="empty-state" data-testid="empty-state">
-            <i class="fa-solid fa-clapperboard"></i>
-            <h3>Aucun média</h3>
-            <p>Ajoute des titres dans tes fichiers films.js, series.js ou animes.js pour commencer.</p>
-          </div>`;
+        $main.innerHTML = `<div class="empty-state"><i class="fa-solid fa-clapperboard"></i><h3>Aucun média</h3></div>`;
         return;
     }
 
     let html = '';
-    const sections = Object.keys(SECTION_LABELS);
-    sections.forEach(sec => {
+    Object.keys(SECTION_LABELS).forEach(sec => {
         const items = list.filter(m => m.section === sec);
         if (items.length) html += rowHTML(SECTION_LABELS[sec], items);
     });
 
     if (filter !== 'all') {
-        const all = list;
-        html = rowHTML(`Tous les ${CATEGORY_LABELS[filter] || ''}`, all) + html;
+        html = rowHTML(`Tous les ${CATEGORY_LABELS[filter]}`, list) + html;
     }
 
-    $main.innerHTML = html || `<div class="empty-state" data-testid="empty-state"><i class="fa-solid fa-clapperboard"></i><h3>Aucun média dans cette catégorie</h3></div>`;
-
+    $main.innerHTML = html;
     attachCardClicks();
 }
 
 function renderSearch(query) {
     const q = query.trim().toLowerCase();
-    if (!q) { renderHome(activeFilter()); return; }
+    if (!q) { renderHome(); return; }
 
-    const results = MEDIAS.filter(m =>
-        m.title.toLowerCase().includes(q) ||
-        (m.overview || '').toLowerCase().includes(q)
-    );
-
+    const results = MEDIAS.filter(m => m.title.toLowerCase().includes(q) || (m.overview || '').toLowerCase().includes(q));
     if (!results.length) {
-        $main.innerHTML = `
-          <div class="empty-state" data-testid="search-empty">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <h3>Aucun résultat pour "${escapeHTML(query)}"</h3>
-            <p>Essaie un autre titre.</p>
-          </div>`;
+        $main.innerHTML = `<div class="empty-state"><i class="fa-solid fa-magnifying-glass"></i><h3>Aucun résultat</h3></div>`;
         return;
     }
-
     $main.innerHTML = rowHTML(`Résultats pour "${query}"`, results);
     attachCardClicks();
 }
 
 function renderPlayer(media) {
-    const poster = media.poster
-        ? `<img src="${media.poster}" alt="${escapeHTML(media.title)}" />`
-        : `<div class="card-poster-placeholder"><i class="fa-solid fa-film"></i></div>`;
-    const rating = media.rating || '—';
-    const year   = media.releaseYear || media.year || '—';
-    const dur    = formatDuration(media);
-    const overview = media.overview || 'Aucun résumé disponible pour ce titre.';
-
-    const similar = MEDIAS
-        .filter(m => m.category === media.category && m.id !== media.id)
-        .slice(0, 6);
+    const poster = media.poster ? `<img src="${media.poster}" alt="${escapeHTML(media.title)}" />` : `<div class="card-poster-placeholder"><i class="fa-solid fa-film"></i></div>`;
+    const similar = MEDIAS.filter(m => m.category === media.category && m.id !== media.id).slice(0, 6);
 
     $main.innerHTML = `
-      <div class="player-page" data-testid="player-page">
-        <button class="btn-back" id="btnBack" data-testid="btn-back">
-          <i class="fa-solid fa-arrow-left"></i> Retour
-        </button>
+      <div class="player-page">
+        <button class="btn-back" id="btnBack"><i class="fa-solid fa-arrow-left"></i> Retour à l'accueil</button>
 
         <div class="player-hero">
           <div class="player-hero-poster">${poster}</div>
           <div class="player-hero-info">
             <h1>${escapeHTML(media.title)}</h1>
             <div class="player-hero-meta">
-              <span><i class="fa-solid fa-star"></i> ${rating}</span>
-              <span><i class="fa-regular fa-calendar"></i> ${year}</span>
-              <span><i class="fa-regular fa-clock"></i> ${dur}</span>
-              <span><i class="fa-solid fa-tag"></i> ${categoryBadge(media.category)}</span>
+              <span><i class="fa-solid fa-star"></i> ${media.rating || '—'}</span>
+              <span><i class="fa-regular fa-calendar"></i> ${media.releaseYear || media.year || '—'}</span>
+              <span><i class="fa-regular fa-clock"></i> ${formatDuration(media)}</span>
             </div>
-            <p class="player-hero-overview">${escapeHTML(overview)}</p>
+            <p class="player-hero-overview">${escapeHTML(media.overview || 'Aucun résumé disponible pour ce titre.')}</p>
           </div>
         </div>
 
-        <h2 class="section-title">Lecteur</h2>
-        <div class="player-frame" data-testid="player-frame">
-          <iframe
-            src="${escapeAttr(media.embed)}"
-            allowfullscreen
-            allow="autoplay; encrypted-media; picture-in-picture"
-            referrerpolicy="no-referrer"
-            sandbox="allow-same-origin allow-scripts allow-presentation allow-forms"
-            data-testid="player-iframe"
-          ></iframe>
+        <h2 class="section-title"><i class="fa-solid fa-circle-play"></i> Visionnage</h2>
+
+        <div class="player-frame">
+          <iframe id="videoIframe" src="${escapeAttr(media.embed)}" allowfullscreen></iframe>
         </div>
 
-        <div style="background: rgba(229, 9, 20, 0.1); border-left: 4px solid #e50914; padding: 16px; margin: 20px 0; border-radius: 4px; color: #ffffff; font-size: 14px; line-height: 1.5;">
-             Cependant, des pubs invisibles restent présentes sur le lecteur — plusieurs clics seront nécessaires pour les fermer avant que la vidéo ne se lance. Pour une expérience sans aucune pub, utilisez un bloqueur de publicités (uBlock Origin, AdBlock, etc.).
-        </div>
-
-        ${similar.length ? `
-          <h2 class="section-title">Titres similaires</h2>
-          <div class="row-grid" data-testid="similar-grid">
-            ${similar.map(cardHTML).join('')}
-          </div>` : ''
-        }
+        ${similar.length ? `<h2 class="section-title">Titres similaires</h2><div class="row-grid">${similar.map(cardHTML).join('')}</div>` : ''}
       </div>
     `;
 
@@ -303,9 +305,6 @@ function renderPlayer(media) {
     attachCardClicks();
 }
 
-// =========================================================
-// 6) HANDLERS
-// =========================================================
 function attachCardClicks() {
     document.querySelectorAll('.card').forEach(card => {
         card.addEventListener('click', () => {
@@ -328,103 +327,32 @@ function setupNav() {
     $navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            const filter = link.dataset.filter;
             $navLinks.forEach(l => l.classList.remove('active'));
             link.classList.add('active');
-
-            if (filter === 'reseaux') {
-                $main.innerHTML = `
-                  <div class="empty-state" data-testid="empty-reseaux">
-                    <i class="fa-solid fa-share-nodes"></i>
-                    <h3>Réseaux</h3>
-                    <p>Section bientôt disponible.</p>
-                  </div>`;
-                return;
-            }
-            renderHome(filter);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            renderHome(link.dataset.filter);
         });
     });
 }
 
 function setupSearch() {
-    $searchToggle.addEventListener('click', () => {
-        $searchBar.classList.add('active');
-        setTimeout(() => $searchInput.focus(), 50);
-    });
-    $searchClose.addEventListener('click', () => {
-        $searchBar.classList.remove('active');
-        $searchInput.value = '';
-        renderHome(activeFilter());
-    });
+    $searchToggle.addEventListener('click', () => { $searchBar.classList.add('active'); setTimeout(() => $searchInput.focus(), 50); });
+    $searchClose.addEventListener('click', () => { $searchBar.classList.remove('active'); $searchInput.value = ''; renderHome(activeFilter()); });
     let timer;
-    $searchInput.addEventListener('input', (e) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => renderSearch(e.target.value), 200);
-    });
-    $searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') $searchClose.click();
-    });
+    $searchInput.addEventListener('input', (e) => { clearTimeout(timer); timer = setTimeout(() => renderSearch(e.target.value), 200); });
 }
 
-function setupHeaderScroll() {
-    const header = document.getElementById('mainHeader');
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 20) header.style.background = 'rgba(10,10,10,0.95)';
-        else header.style.background = 'rgba(10,10,10,0.85)';
-    });
-}
+function escapeHTML(str) { return String(str || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function escapeAttr(str) { return String(str || '').replace(/"/g, '&quot;'); }
 
-// =========================================================
-// 7) UTILS
-// =========================================================
-function escapeHTML(str) {
-    return String(str || '').replace(/[&<>"']/g, c => ({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[c]));
-}
-function escapeAttr(str) {
-    return String(str || '').replace(/"/g, '&quot;');
-}
-function slug(s) {
-    return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-');
-}
-
-// =========================================================
-// 8) BOOT
-// =========================================================
 async function boot() {
-    MEDIAS = loadMediasFromJS();
-
-    $main.innerHTML = `
-      <div class="loading" data-testid="loading">
-        <div class="spinner"></div>
-        <p>Chargement des médias depuis TheMovieDB...</p>
-      </div>`;
-
+    // Déclenchement automatique du popup d'avertissement au chargement
+    showWelcomePopup();
+    
+    MEDIAS = readMediasFromJS();
     setupNav();
     setupSearch();
-    setupHeaderScroll();
-
     await loadAllTMDB();
-
-    const hash = window.location.hash;
-    const m = hash.match(/^#play=(\d+)$/);
-    if (m) {
-        const media = MEDIAS.find(x => x.id === Number(m[1]));
-        if (media) { renderPlayer(media); return; }
-    }
-    renderHome(activeFilter());
+    renderHome();
 }
-
-window.addEventListener('popstate', () => {
-    const hash = window.location.hash;
-    const m = hash.match(/^#play=(\d+)$/);
-    if (m) {
-        const media = MEDIAS.find(x => x.id === Number(m[1]));
-        if (media) { renderPlayer(media); return; }
-    }
-    renderHome(activeFilter());
-});
 
 document.addEventListener('DOMContentLoaded', boot);
