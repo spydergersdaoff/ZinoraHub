@@ -1,5 +1,5 @@
 /* =========================================================
-   MonoFly — script.js
+   MONOFLY — script.js
    ========================================================= */
 
 const TMDB_API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c';
@@ -21,6 +21,7 @@ const CATEGORY_LABELS = {
 };
 
 let MEDIAS = []; 
+let currentSelectedSeason = 1; 
 
 const $main = document.getElementById('mainContent');
 const $searchBar = document.getElementById('searchBar');
@@ -29,11 +30,8 @@ const $searchClose = document.getElementById('searchClose');
 const $searchInput = document.getElementById('searchInput');
 const $navLinks = document.querySelectorAll('.nav-link');
 
-// =========================================================
-// POPUP DE BIENVENUE STYLÉ (LIENS ET CHOIX D'AFFICHAGE)
-// =========================================================
+// POPUP DE BIENVENUE STYLÉ AVEC SÉCURITÉ ANTI-PUB
 function showWelcomePopup() {
-    // Si l'utilisateur a choisi de ne plus l'afficher, on stoppe direct
     if (localStorage.getItem('hideAdblockPopup') === 'true') {
         return;
     }
@@ -44,77 +42,60 @@ function showWelcomePopup() {
     popupOverlay.style.left = '0';
     popupOverlay.style.width = '100%';
     popupOverlay.style.height = '100%';
-    popupOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+    popupOverlay.style.backgroundColor = 'rgba(13, 13, 18, 0.9)';
     popupOverlay.style.display = 'flex';
     popupOverlay.style.justifyContent = 'center';
     popupOverlay.style.alignItems = 'center';
     popupOverlay.style.zIndex = '99999';
-    popupOverlay.style.backdropFilter = 'blur(8px)';
+    popupOverlay.style.backdropFilter = 'blur(12px)';
     popupOverlay.style.padding = '20px';
 
     popupOverlay.innerHTML = `
-        <div style="background: linear-gradient(135deg, #1e1e1e 0%, #141414 100%); border: 2px solid #e50914; border-radius: 16px; padding: 35px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(229, 9, 20, 0.3); font-family: 'Inter', sans-serif; color: #fff;">
-            <div style="background: rgba(229, 9, 20, 0.1); width: 70px; height: 70px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 20px;">
-                <i class="fa-solid fa-shield-halved" style="color: #e50914; font-size: 32px;"></i>
+        <div style="background: linear-gradient(135deg, #14141f 0%, #0d0d12 100%); border: 2px solid #a855f7; border-radius: 16px; padding: 35px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(168, 85, 247, 0.2); font-family: 'Inter', sans-serif; color: #fff;">
+            <div style="background: rgba(168, 85, 247, 0.1); width: 70px; height: 70px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 20px; border: 1px solid rgba(168, 85, 247, 0.3);">
+                <i class="fa-solid fa-shield-halved" style="color: #a855f7; font-size: 32px;"></i>
             </div>
-            <h2 style="font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 1px; margin-bottom: 10px; color: #fff;">Attention aux publicités !</h2>
-            <p style="font-size: 14px; line-height: 1.6; color: #cccccc; margin-bottom: 25px;">
-                Le lecteur externe contient des pubs. Pour regarder vos vidéos tranquillement, cliquez sur l'un de ces bloqueurs gratuits pour l'installer :
+            <h2 style="font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 1px; margin-bottom: 10px; color: #fff; background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Attention aux publicités !</h2>
+            <p style="font-size: 14px; line-height: 1.6; color: #94a3b8; margin-bottom: 25px;">
+                Le lecteur externe contient des publicités. Pour regarder vos vidéos tranquillement, cliquez sur l'un de ces bloqueurs gratuits pour l'installer :
             </p>
             
             <div style="text-align: left; margin-bottom: 30px; display: flex; flex-direction: column; gap: 12px;">
-                <a href="https://ublockorigin.com/" target="_blank" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; transition: all 0.2s;"><span><i class="fa-solid fa-download" style="color: #e50914; margin-right: 10px;"></i> uBlock Origin</span> <span style="font-size: 11px; color: #2ecc71; background: rgba(46,204,113,0.1); padding: 2px 8px; border-radius: 4px;">Top Recommandé</span></a>
-                <a href="https://adguard.com/" target="_blank" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; transition: all 0.2s;"><i class="fa-solid fa-download" style="color: #e50914; margin-right: 10px;"></i> AdGuard</a>
-                <a href="https://brave.com/" target="_blank" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; transition: all 0.2s;"><i class="fa-solid fa-download" style="color: #e50914; margin-right: 10px;"></i> Brave Browser (Navigateur anti-pub)</a>
-                <a href="https://adblockplus.org/" target="_blank" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; transition: all 0.2s;"><i class="fa-solid fa-download" style="color: #e50914; margin-right: 10px;"></i> Adblock Plus</a>
-                <a href="https://www.ghostery.com/" target="_blank" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; transition: all 0.2s;"><i class="fa-solid fa-download" style="color: #e50914; margin-right: 10px;"></i> Ghostery</a>
+                <a href="https://ublockorigin.com/" target="_blank" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 12px; background: #161622; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #2a2a3c; transition: all 0.2s;"><span><i class="fa-solid fa-download" style="color: #a855f7; margin-right: 10px;"></i> uBlock Origin</span> <span style="font-size: 11px; color: #2ecc71; background: rgba(46,204,113,0.1); padding: 2px 8px; border-radius: 4px;">Top Recommandé</span></a>
+                <a href="https://adguard.com/" target="_blank" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 12px; background: #161622; border-radius: 8px; display: flex; align-items: center; border: 1px solid #2a2a3c; transition: all 0.2s;"><i class="fa-solid fa-download" style="color: #a855f7; margin-right: 10px;"></i> AdGuard</a>
+                <a href="https://brave.com/" target="_blank" style="color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 12px; background: #161622; border-radius: 8px; display: flex; align-items: center; border: 1px solid #2a2a3c; transition: all 0.2s;"><i class="fa-solid fa-download" style="color: #a855f7; margin-right: 10px;"></i> Brave Browser (Anti-pub)</a>
             </div>
 
             <div style="display: flex; gap: 15px; justify-content: center;">
-                <button id="btnNextTime" style="background-color: transparent; color: #aaa; border: 1px solid #444; padding: 12px 20px; font-size: 14px; font-weight: 600; border-radius: 30px; cursor: pointer; flex: 1; transition: all 0.2s;">Voir la prochaine fois</button>
-                <button id="btnClosePopup" style="background-color: #e50914; color: #fff; border: none; padding: 12px 20px; font-size: 14px; font-weight: 700; border-radius: 30px; cursor: pointer; flex: 1; transition: all 0.2s; text-transform: uppercase;">Ne plus afficher</button>
+                <button id="btnNextTime" style="background-color: transparent; color: #94a3b8; border: 1px solid #2a2a3c; padding: 12px 20px; font-size: 14px; font-weight: 600; border-radius: 10px; cursor: pointer; flex: 1; transition: all 0.2s;">Plus tard</button>
+                <button id="btnClosePopup" style="background-color: #a855f7; color: #fff; border: none; padding: 12px 20px; font-size: 14px; font-weight: 700; border-radius: 10px; cursor: pointer; flex: 1; transition: all 0.2s; text-transform: uppercase; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);">Ne plus afficher</button>
             </div>
         </div>
     `;
 
     document.body.appendChild(popupOverlay);
 
-    // Effet hover sur les liens de téléchargement
     popupOverlay.querySelectorAll('a').forEach(link => {
-        link.onmouseover = () => { link.style.background = 'rgba(255,255,255,0.1)'; link.style.borderColor = '#e50914'; };
-        link.onmouseout = () => { link.style.background = 'rgba(255,255,255,0.05)'; link.style.borderColor = 'transparent'; };
+        link.onmouseover = () => { link.style.borderColor = '#a855f7'; link.style.background = '#1c1c2b'; };
+        link.onmouseout = () => { link.style.borderColor = '#2a2a3c'; link.style.background = '#161622'; };
     });
 
     const btnClose = document.getElementById('btnClosePopup');
     const btnNext = document.getElementById('btnNextTime');
 
-    btnClose.onmouseover = () => btnClose.style.backgroundColor = '#b80710';
-    btnClose.onmouseout = () => btnClose.style.backgroundColor = '#e50914';
-    btnNext.onmouseover = () => { btnNext.style.color = '#fff'; btnNext.style.borderColor = '#aaa'; };
-    btnNext.onmouseout = () => { btnNext.style.color = '#aaa'; btnNext.style.borderColor = '#444'; };
-
-    // Fonction pour fermer proprement avec animation
     const fadeOut = () => {
         popupOverlay.style.opacity = '0';
         popupOverlay.style.transition = 'opacity 0.3s ease';
         setTimeout(() => popupOverlay.remove(), 300);
     };
 
-    // BOUTON "Ne plus afficher" -> On enregistre dans la mémoire et on ferme
     btnClose.addEventListener('click', () => {
         localStorage.setItem('hideAdblockPopup', 'true');
         fadeOut();
     });
-
-    // BOUTON "Voir la prochaine fois" -> On ferme juste pour cette session
-    btnNext.addEventListener('click', () => {
-        fadeOut();
-    });
+    btnNext.addEventListener('click', fadeOut);
 }
 
-// =========================================================
-// LOGIQUE FLUX DE DONNÉES
-// =========================================================
 function readMediasFromJS() {
     let combined = [];
 
@@ -132,11 +113,11 @@ function readMediasFromJS() {
         id: idx,
         title:    item.title || '',
         embed:    item.embed || '',
+        seasons:  item.seasons || null,
         category: item.category,
         section:  item.section || 'a-ne-pas-manquer',
         year:     item.year || null,
-        poster: null, rating: null, releaseYear: null,
-        overview: '', runtime: null, seasons: null, tmdbType: null,
+        poster: null, rating: null, releaseYear: null, overview: '',
         loaded: false,
     }));
 }
@@ -158,18 +139,6 @@ async function fetchTMDB(media) {
         media.rating      = hit.vote_average ? Number(hit.vote_average).toFixed(1) : null;
         media.releaseYear = (hit.release_date || hit.first_air_date || '').slice(0, 4) || media.year;
         media.overview    = hit.overview || '';
-        media.tmdbId      = hit.id;
-        media.tmdbType    = isMovie ? 'movie' : 'tv';
-
-        try {
-            const detailUrl = `${TMDB_BASE}/${media.tmdbType}/${media.tmdbId}?api_key=${TMDB_API_KEY}&language=${LANG}`;
-            const detailRes = await fetch(detailUrl);
-            if (detailRes.ok) {
-                const detail = await detailRes.json();
-                if (isMovie) media.runtime = detail.runtime || null;
-                else media.seasons = detail.number_of_seasons || null;
-            }
-        } catch (_) {}
     } catch (err) {
         console.warn(err);
     } finally {
@@ -179,16 +148,6 @@ async function fetchTMDB(media) {
 
 async function loadAllTMDB() {
     await Promise.all(MEDIAS.map(fetchTMDB));
-}
-
-function formatDuration(media) {
-    if (media.category === 'film') {
-        if (!media.runtime) return '—';
-        const h = Math.floor(media.runtime / 60);
-        const m = media.runtime % 60;
-        return h ? `${h}h${m.toString().padStart(2, '0')}` : `${m}min`;
-    }
-    return media.seasons ? `${media.seasons} S.` : '—';
 }
 
 function categoryBadge(cat) {
@@ -208,7 +167,6 @@ function cardHTML(media) {
           <div class="card-meta">
             <span><i class="fa-solid fa-star"></i> ${media.rating || '—'}</span>
             <span><i class="fa-regular fa-calendar"></i> ${media.releaseYear || media.year || '—'}</span>
-            <span><i class="fa-regular fa-clock"></i> ${formatDuration(media)}</span>
           </div>
         </div>
       </div>
@@ -221,7 +179,7 @@ function rowHTML(title, items) {
       <section class="row">
         <div class="row-header">
           <h2 class="row-title">${escapeHTML(title)}</h2>
-          <span class="row-count"># ${items.length} titre${items.length > 1 ? 's' : ''}</span>
+          <span class="row-count">${items.length} titre${items.length > 1 ? 's' : ''}</span>
         </div>
         <div class="row-grid">${items.map(cardHTML).join('')}</div>
       </section>
@@ -233,7 +191,7 @@ function renderHome(filter = 'all') {
     if (filter !== 'all') list = MEDIAS.filter(m => m.category === filter);
 
     if (!list.length) {
-        $main.innerHTML = `<div class="empty-state"><i class="fa-solid fa-clapperboard"></i><h3>Aucun média</h3></div>`;
+        $main.innerHTML = `<div class="empty-state"><i class="fa-solid fa-clapperboard"></i><h3>Aucun média trouvé</h3></div>`;
         return;
     }
 
@@ -253,11 +211,11 @@ function renderHome(filter = 'all') {
 
 function renderSearch(query) {
     const q = query.trim().toLowerCase();
-    if (!q) { renderHome(); return; }
+    if (!q) { renderHome(activeFilter()); return; }
 
     const results = MEDIAS.filter(m => m.title.toLowerCase().includes(q) || (m.overview || '').toLowerCase().includes(q));
     if (!results.length) {
-        $main.innerHTML = `<div class="empty-state"><i class="fa-solid fa-magnifying-glass"></i><h3>Aucun résultat</h3></div>`;
+        $main.innerHTML = `<div class="empty-state"><i class="fa-solid fa-magnifying-glass"></i><h3>Aucun résultat pour votre recherche</h3></div>`;
         return;
     }
     $main.innerHTML = rowHTML(`Résultats pour "${query}"`, results);
@@ -267,8 +225,16 @@ function renderSearch(query) {
 function renderPlayer(media) {
     const poster = media.poster ? `<img src="${media.poster}" alt="${escapeHTML(media.title)}" />` : `<div class="card-poster-placeholder"><i class="fa-solid fa-film"></i></div>`;
     const similar = MEDIAS.filter(m => m.category === media.category && m.id !== media.id).slice(0, 6);
+    
+    const isSerie = media.category === 'serie' || media.category === 'anime';
+    let firstEmbed = media.embed;
+    
+    if (isSerie && media.seasons && media.seasons.length > 0) {
+        firstEmbed = media.seasons[0].episodes[0].embed;
+        currentSelectedSeason = media.seasons[0].seasonNumber;
+    }
 
-    $main.innerHTML = `
+    let html = `
       <div class="player-page">
         <button class="btn-back" id="btnBack"><i class="fa-solid fa-arrow-left"></i> Retour à l'accueil</button>
 
@@ -279,7 +245,6 @@ function renderPlayer(media) {
             <div class="player-hero-meta">
               <span><i class="fa-solid fa-star"></i> ${media.rating || '—'}</span>
               <span><i class="fa-regular fa-calendar"></i> ${media.releaseYear || media.year || '—'}</span>
-              <span><i class="fa-regular fa-clock"></i> ${formatDuration(media)}</span>
             </div>
             <p class="player-hero-overview">${escapeHTML(media.overview || 'Aucun résumé disponible pour ce titre.')}</p>
           </div>
@@ -288,13 +253,34 @@ function renderPlayer(media) {
         <h2 class="section-title"><i class="fa-solid fa-circle-play"></i> Visionnage</h2>
 
         <div class="player-frame">
-          <iframe id="videoIframe" src="${escapeAttr(media.embed)}" allowfullscreen></iframe>
+          <iframe id="videoIframe" src="${escapeAttr(firstEmbed)}" allowfullscreen></iframe>
         </div>
+    `;
 
-        ${similar.length ? `<h2 class="section-title">Titres similaires</h2><div class="row-grid">${similar.map(cardHTML).join('')}</div>` : ''}
+    if (isSerie && media.seasons) {
+        html += `
+          <div class="episodes-section">
+            <h2 class="episodes-title"><i class="fa-solid fa-list"></i> Épisodes</h2>
+            <div class="seasons-tabs">
+                ${media.seasons.map(s => `
+                    <button class="btn-season ${s.seasonNumber === currentSelectedSeason ? 'active' : ''}" data-season="${s.seasonNumber}">
+                        <i class="fa-solid fa-tv"></i> Saison ${s.seasonNumber}
+                    </button>
+                `).join('')}
+            </div>
+            <div class="episodes-list" id="episodesListContainer">
+                ${generateEpisodesHTML(media, currentSelectedSeason)}
+            </div>
+          </div>
+        `;
+    }
+
+    html += `
+        ${similar.length ? `<h2 class="section-title" style="margin-top:50px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Titres similaires</h2><div class="row-grid">${similar.map(cardHTML).join('')}</div>` : ''}
       </div>
     `;
 
+    $main.innerHTML = html;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     document.getElementById('btnBack').addEventListener('click', () => {
@@ -302,7 +288,71 @@ function renderPlayer(media) {
         renderHome(activeFilter());
     });
 
+    if (isSerie && media.seasons) {
+        attachSeasonAndEpisodeEvents(media);
+    }
+
     attachCardClicks();
+}
+
+function generateEpisodesHTML(media, seasonNum) {
+    const season = media.seasons.find(s => s.seasonNumber === seasonNum);
+    if (!season) return '<p>Aucun épisode trouvé.</p>';
+
+    return season.episodes.map((ep, index) => `
+        <div class="episode-card">
+            <div class="episode-left">
+                <div class="episode-number-box">
+                    <span>Ép.</span> ${ep.episodeNumber}
+                </div>
+                <div class="episode-details">
+                    <h3>${escapeHTML(ep.title)}</h3>
+                    <div class="episode-meta">
+                        <span><i class="fa-solid fa-layer-group"></i> S${seasonNum}E${ep.episodeNumber}</span>
+                        <span><i class="fa-regular fa-clock"></i> ${ep.duration || '—'}</span>
+                    </div>
+                    <p class="episode-overview">${escapeHTML(ep.overview || 'Pas de résumé disponible.')}</p>
+                </div>
+            </div>
+            <button class="btn-play-ep ${index === 0 && seasonNum === 1 ? 'playing' : ''}" data-embed="${escapeAttr(ep.embed)}">
+                <i class="fa-solid fa-play"></i> ${index === 0 && seasonNum === 1 ? 'En cours' : 'Regarder'}
+            </button>
+        </div>
+    `).join('');
+}
+
+function attachSeasonAndEpisodeEvents(media) {
+    const tabs = document.querySelectorAll('.btn-season');
+    const container = document.getElementById('episodesListContainer');
+    const iframe = document.getElementById('videoIframe');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentSelectedSeason = Number(tab.dataset.season);
+            container.innerHTML = generateEpisodesHTML(media, currentSelectedSeason);
+            attachEpisodePlayClicks();
+        });
+    });
+
+    function attachEpisodePlayClicks() {
+        const epButtons = document.querySelectorAll('.btn-play-ep');
+        epButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                epButtons.forEach(b => {
+                    b.classList.remove('playing');
+                    b.innerHTML = `<i class="fa-solid fa-play"></i> Regarder`;
+                });
+                btn.classList.add('playing');
+                btn.innerHTML = `<i class="fa-solid fa-circle-dot"></i> En cours`;
+                iframe.src = btn.dataset.embed;
+                window.scrollTo({ top: 400, behavior: 'smooth' });
+            });
+        });
+    }
+
+    attachEpisodePlayClicks();
 }
 
 function attachCardClicks() {
@@ -345,9 +395,7 @@ function escapeHTML(str) { return String(str || '').replace(/[&<>"']/g, c => ({ 
 function escapeAttr(str) { return String(str || '').replace(/"/g, '&quot;'); }
 
 async function boot() {
-    // Déclenchement automatique du popup d'avertissement au chargement
     showWelcomePopup();
-    
     MEDIAS = readMediasFromJS();
     setupNav();
     setupSearch();
