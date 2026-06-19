@@ -10,8 +10,7 @@ const FILMS_DATA = [
         embed: "https://vidzy.live/embed-8ffjtfszsbt8.html",
         section: "tendances",
         year: "2026"
-    }
-    
+    },    
         "title": "Scream",
         "embed": "https://uqload.is/embed-cpnlk95lren0.html",
         "section": "tendances",
