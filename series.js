@@ -66,7 +66,7 @@ const SERIES_DATA = [
                 ]
             }
         ]
-    }
+    },
     {
         "title": "Breaking Bad",
         "section": "tendances",
