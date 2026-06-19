@@ -1,54 +1,185 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MonoFly</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonoFly — Streaming Premium</title>
+  <meta name="description" content="MonoFly, votre plateforme de streaming vidéo premium. Films, Séries et Animés en haute qualité." />
+
+  <!-- ====== BALISES DE L'EMBED (OPEN GRAPH & DISCORD) ====== -->
+  <meta property="og:title" content="MonoFly — Streaming Premium" />
+  <meta property="og:description" content="MonoFly, votre plateforme de streaming vidéo premium. Films, Séries et Animés en haute qualité." />
+  <meta property="og:type" content="website" />
+  
+  <!-- N'oublie pas de remplacer les deux liens ci-dessous par les tiens une fois ton site en ligne -->
+  <meta property="og:url" content="https://ton-site-monofly.com" /> 
+  <meta property="og:image" content="https://ton-site-monofly.com/une-image-de-banniere.jpg" /> 
+
+  <!-- Ajoute une bordure violette sur le côté de l'embed sur Discord -->
+  <meta name="theme-color" content="#a855f7" />
+  <!-- ======================================================= -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            mono: {
+              bg: '#0d0d12',
+              surface: '#13131a',
+              card: '#1a1a24',
+              border: '#2a2a3a',
+              accent: '#a855f7',
+              'accent-light': '#c084fc',
+              'accent-dark': '#7c3aed',
+              danger: '#ef4444',
+              'text-primary': '#ffffff',
+              'text-secondary': '#94a3b8',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="bg-mono-bg text-mono-text-primary font-sans min-h-screen">
 
-    <header class="header" id="mainHeader">
-        <div class="header-inner">
-            <a href="#" class="logo">MonoFly</a>
-            <nav class="nav-menu">
-                <a href="#" class="nav-link active" data-filter="all">Accueil</a>
-                <a href="#" class="nav-link" data-filter="film">Films</a>
-                <a href="#" class="nav-link" data-filter="serie">Séries</a>
-                <a href="#" class="nav-link" data-filter="anime">Animés</a>
-                <a href="#" class="nav-link" data-filter="reseaux">Réseaux</a>
-            </nav>
-            <div class="header-actions">
-                <button class="btn-icon" id="searchToggle"><i class="fa-solid fa-magnifying-glass"></i></button>
-            </div>
-        </div>
-        <div class="search-bar" id="searchBar">
-            <div class="search-bar-inner">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="searchInput" placeholder="Rechercher un titre, résumé..." />
-                <button class="btn-icon" id="searchClose"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-        </div>
-    </header>
+  <!-- ====== POPUP ANTI-PUB / BIENVENUE ====== -->
+  <div id="welcomePopup" class="popup-overlay hidden">
+    <div class="popup-container">
+      <button id="popupClose" class="popup-close" aria-label="Fermer">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <div class="popup-icon">
+        <i data-lucide="shield-check" class="w-10 h-10"></i>
+      </div>
+      <h2 class="popup-title">Bienvenue sur MonoFly</h2>
+      <p class="popup-text">
+        Pour une expérience optimale et sans publicités intrusives, nous vous recommandons vivement d'utiliser un bloqueur de publicités. Les lecteurs externes peuvent ouvrir des fenêtres indésirables.
+      </p>
+      <div class="popup-links">
+        <a href="https://ublockorigin.com/" target="_blank" rel="noopener noreferrer" class="popup-link">
+          <i data-lucide="shield" class="w-5 h-5"></i>
+          <span>uBlock Origin</span>
+        </a>
+        <a href="https://adguard.com/" target="_blank" rel="noopener noreferrer" class="popup-link">
+          <i data-lucide="shield-half" class="w-5 h-5"></i>
+          <span>AdGuard</span>
+        </a>
+        <a href="https://brave.com/" target="_blank" rel="noopener noreferrer" class="popup-link">
+          <i data-lucide="globe" class="w-5 h-5"></i>
+          <span>Brave Browser</span>
+        </a>
+      </div>
+      <label class="popup-dont-show">
+        <input type="checkbox" id="popupDontShow" />
+        <span>Ne plus afficher ce message</span>
+      </label>
+      <button id="popupContinue" class="popup-continue">
+        Continuer vers MonoFly
+      </button>
+    </div>
+  </div>
 
-    <main class="main-content" id="mainContent">
-        </main>
+  <!-- ====== EN-TÊTE FIXE FLOUTÉ ====== -->
+  <header id="mainHeader" class="app-header">
+    <div class="header-inner">
+      <a href="#" id="logoLink" class="logo-link">
+        <span class="logo-icon">
+          <i data-lucide="play-circle" class="w-8 h-8"></i>
+        </span>
+        <span class="logo-text">Mono<span class="text-mono-accent">Fly</span></span>
+      </a>
+      <nav class="header-nav" id="headerNav">
+        <button class="nav-tab active" data-tab="all">
+          <i data-lucide="layout-grid" class="w-4 h-4"></i>
+          <span>Tout</span>
+        </button>
+        <button class="nav-tab" data-tab="films">
+          <i data-lucide="film" class="w-4 h-4"></i>
+          <span>Films</span>
+        </button>
+        <button class="nav-tab" data-tab="series">
+          <i data-lucide="tv" class="w-4 h-4"></i>
+          <span>Séries</span>
+        </button>
+        <button class="nav-tab" data-tab="animes">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>Animés</span>
+        </button>
+      </nav>
+      <div class="header-search">
+        <i data-lucide="search" class="w-4 h-4 search-icon"></i>
+        <input type="text" id="searchInput" placeholder="Rechercher un titre..." autocomplete="off" />
+        <button id="searchClear" class="search-clear hidden" aria-label="Effacer la recherche">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Menu">
+        <i data-lucide="menu" class="w-6 h-6"></i>
+      </button>
+    </div>
+    <!-- Menu mobile déroulant -->
+    <div id="mobileMenu" class="mobile-menu hidden">
+      <div class="mobile-search">
+        <i data-lucide="search" class="w-4 h-4 search-icon"></i>
+        <input type="text" id="mobileSearchInput" placeholder="Rechercher..." autocomplete="off" />
+      </div>
+      <nav class="mobile-nav" id="mobileNav">
+        <button class="nav-tab active" data-tab="all">
+          <i data-lucide="layout-grid" class="w-4 h-4"></i>
+          <span>Tout</span>
+        </button>
+        <button class="nav-tab" data-tab="films">
+          <i data-lucide="film" class="w-4 h-4"></i>
+          <span>Films</span>
+        </button>
+        <button class="nav-tab" data-tab="series">
+          <i data-lucide="tv" class="w-4 h-4"></i>
+          <span>Séries</span>
+        </button>
+        <button class="nav-tab" data-tab="animes">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>Animés</span>
+        </button>
+      </nav>
+    </div>
+  </header>
 
-    <footer class="footer">
-        <div class="footer-inner">
-            <div class="footer-brand">MonoFly</div>
-            <p class="footer-text">© 2026 MonoFly. Tous droits réservés.</p>
-        </div>
-    </footer>
+  <!-- ====== CONTENU PRINCIPAL ====== -->
+  <main id="mainContent" class="main-content">
+    <!-- Le contenu est injecté dynamiquement par script.js -->
+  </main>
 
-    <script src="films.js"></script>
-    <script src="series.js"></script>
-    <script src="animes.js"></script>
-    
-    <script src="script.js"></script>
+  <!-- ====== FOOTER ====== -->
+  <footer class="app-footer">
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <i data-lucide="play-circle" class="w-6 h-6"></i>
+        <span>Mono<span class="text-mono-accent">Fly</span></span>
+      </div>
+      <p class="footer-text">© 2025 MonoFly — Tous droits réservés. Plateforme de streaming à but éducatif.</p>
+      <div class="footer-links">
+        <a href="#">Mentions légales</a>
+        <a href="#">Contact</a>
+        <a href="#">DMCA</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ====== SCRIPTS DANS L'ORDRE REQUIS ====== -->
+  <script src="films.js"></script>
+  <script src="series.js"></script>
+  <script src="animes.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="script.js"></script>
 </body>
 </html>
