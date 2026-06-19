@@ -11,13 +11,10 @@
   <meta property="og:description" content="MonoFly - Votre plateforme de streaming premium dev by Niece2. MonoFly and Chill." />
   <meta property="og:type" content="website" />
   
-  <!-- N'oublie pas de remplacer les deux liens ci-dessous par les tiens une fois ton site en ligne -->
   <meta property="og:url" content="https://ton-site-monofly.com" /> 
   <meta property="og:image" content="https://ton-site-monofly.com/une-image-de-banniere.jpg" /> 
 
-  <!-- Ajoute une bordure violette sur le côté de l'embed sur Discord -->
   <meta name="theme-color" content="#a855f7" />
-  <!-- ======================================================= -->
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -85,6 +82,68 @@
       </label>
       <button id="popupContinue" class="popup-continue">
         Continuer vers MonoFly
+      </button>
+    </div>
+  </div>
+
+  <!-- ====== POPUP DE SIGNALEMENT DE PROBLÈME ====== -->
+  <div id="reportPopup" class="popup-overlay hidden">
+    <div class="popup-container report-popup-container">
+      <button id="reportClose" class="popup-close" aria-label="Fermer">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <div class="popup-icon">
+        <i data-lucide="alert-triangle" class="w-10 h-10"></i>
+      </div>
+      <h2 class="popup-title">Signaler un problème</h2>
+      <p class="popup-text">
+        Sélectionnez le problème rencontré avec ce contenu.
+      </p>
+
+      <!-- Onglets Normal / Rapide -->
+      <div class="report-tabs-container">
+        <button class="report-tab active" data-tab="normal">
+          <i data-lucide="clock" style="width: 16px; height: 16px;"></i>
+          <span>Réparation (Normal)</span>
+        </button>
+        <button class="report-tab" data-tab="rapide">
+          <i data-lucide="zap" style="width: 16px; height: 16px;"></i>
+          <span>Réparation (Rapide)</span>
+        </button>
+      </div>
+
+      <!-- Contenu des onglets -->
+      <form id="reportForm" class="report-form">
+        <!-- Tab Normal -->
+        <div class="report-tab-content" data-tab="normal">
+          <label class="report-label">Raison</label>
+          <select class="report-select" required>
+            <option value="">Lecteur indisponible / Cassé</option>
+            <option value="player_unavailable">Lecteur indisponible / Cassé</option>
+            <option value="broken_link">Mauvais film / Erreur de lien</option>
+            <option value="sound_image_issue">Problème de son ou d'image</option>
+            <option value="missing_subtitles">Sous-titres manquants ou décalés</option>
+            <option value="other">Autre problème</option>
+          </select>
+        </div>
+
+        <!-- Tab Rapide -->
+        <div class="report-tab-content hidden" data-tab="rapide">
+          <label class="report-label">Raison</label>
+          <select class="report-select" required>
+            <option value="">Lecteur indisponible / Cassé</option>
+            <option value="player_unavailable">Lecteur indisponible / Cassé</option>
+            <option value="broken_link">Mauvais film / Erreur de lien</option>
+            <option value="sound_image_issue">Problème de son ou d'image</option>
+            <option value="missing_subtitles">Sous-titres manquants ou décalés</option>
+            <option value="other">Autre problème</option>
+          </select>
+        </div>
+      </form>
+
+      <button id="reportSubmit" class="popup-continue report-submit" style="background: linear-gradient(135deg, #ef4444, #dc2626); margin-top: 1.5rem;">
+        <i data-lucide="send" style="width: 18px; height: 18px;"></i>
+        <span>Envoyer le signalement</span>
       </button>
     </div>
   </div>
