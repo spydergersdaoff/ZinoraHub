@@ -1,13 +1,13 @@
 const FILMS_DATA = [
     {
         title: "Marsupilami",
-        embed: "",
+        embed: "https://vidzy.live/embed-8ffjtfszsbt8.html",
         section: "tendances",
         year: "2026"
     },    
     {
         title: "Scream",
-        embed: "https://vidzy.live/embed-8ffjtfszsbt8.html",
+        embed: "",
         section: "tendances",
         year: "1996"
     },
