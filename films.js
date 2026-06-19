@@ -7,7 +7,7 @@ const FILMS_DATA = [
     },
     {
         title: "Marsupilami",
-        embed: "https://vidzy.live/embed-8ffjtfszsbt8.html",
+        embed: "",
         section: "tendances",
         year: "2026"
     },    
