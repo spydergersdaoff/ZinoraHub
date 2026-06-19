@@ -7,7 +7,7 @@ const FILMS_DATA = [
     },    
     {
         title: "Scream",
-        embed: "",
+        embed: "https://vidzy.live/embed-8ffjtfszsbt8.html",
         section: "tendances",
         year: "1996"
     },
