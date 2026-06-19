@@ -85,7 +85,7 @@ const FILMS_DATA = [
     },
     {
         "title": "Scary Movie",
-        "embed": "https://uqload.is/embed-17mx23oyh63g.html",
+        "embed": "https://uqload.is/embed-kdl6231oejlf.html",
         "section": "tendances",
         "year": "2000"
     },
