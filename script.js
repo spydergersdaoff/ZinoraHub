@@ -1,15 +1,93 @@
-const TMDB_API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c'; // Remplacez par votre clé API TMDB (gratuite sur themoviedb.org)
+const TMDB_API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c';
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w500';
-const TMDB_CACHE = {}; // Cache en mémoire pour éviter les requêtes en double
+const TMDB_CACHE = {};
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1517349633641418915/lMq18N4y86CaB6ZW0cR5lhozvj-4XdHSYnQm6-6r2hPPkALyAU6ik9ewKZqEeEa9erI5'; // URL DIRECTE
 
-/* ---------- État global de l'application ---------- */
 let currentTab = 'all';
 let currentSearch = '';
 let allMedia = [];
 let currentPlayingMedia = null;
 let currentPlayingSeason = null;
 let currentPlayingEpisode = null;
+
+/* ============================================================
+   FONCTION DE CRYPTAGE SIMPLE
+   ============================================================ */
+function encryptData(data) {
+  return btoa(JSON.stringify(data));
+}
+
+function decryptData(encryptedData) {
+  try {
+    return JSON.parse(atob(encryptedData));
+  } catch (e) {
+    return data;
+  }
+}
+
+/* ============================================================
+   VÉRIFICATION DES LIENS (Lien cassé) - EN ARRIÈRE-PLAN
+   ============================================================ */
+// Cache pour les URLs vérifiées
+const urlCheckCache = {};
+
+async function checkEmbedUrl(url, timeout = 3000) {
+  if (!url || url.length === 0) return false;
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    
+    // Essayer de charger l'iframe de manière passive
+    const response = await fetch(url, {
+      method: 'GET',
+      mode: 'no-cors',
+      signal: controller.signal,
+      cache: 'no-store'
+    }).catch(() => null);
+    
+    clearTimeout(timeoutId);
+    
+    // Si pas d'erreur CORS, le lien est probablement bon
+    return response !== null;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function isEmbedAvailable(url) {
+  if (!url) return false;
+  
+  // Vérifier le cache
+  if (urlCheckCache[url] !== undefined) {
+    return urlCheckCache[url];
+  }
+  
+  // Ne pas bloquer l'affichage - vérifier en arrière-plan
+  const available = await checkEmbedUrl(url);
+  urlCheckCache[url] = available;
+  
+  // Mettre à jour l'UI si nécessaire
+  updateMediaUnavailableBadges();
+  
+  return available;
+}
+
+function updateMediaUnavailableBadges() {
+  // Mettre à jour les badges indisponibles
+  document.querySelectorAll('.media-card').forEach(card => {
+    const poster = card.querySelector('.media-card-poster');
+    if (poster && !poster.querySelector('.media-unavailable')) {
+      const mediaIndex = parseInt(card.dataset.mediaIndex, 10);
+      const media = allMedia[mediaIndex];
+      
+      if (media && !isEmbedAvailable(media.embed)) {
+        // Ajouter le badge indisponible
+      }
+    }
+  });
+}
 
 /* ---------- Fonctions de protection XSS ---------- */
 function escapeHTML(str) {
@@ -33,91 +111,187 @@ function escapeAttr(str) {
    INITIALISATION AU CHARGEMENT
    ============================================================ */
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialiser les icônes Lucide
   lucide.createIcons();
-
-  // Construire la liste complète des médias
   buildAllMedia();
-
-  // Gérer la popup de bienvenue
   handleWelcomePopup();
-
-  // Initialiser la navigation
   initNavigation();
-
-  // Initialiser la recherche
   initSearch();
-
-  // Initialiser le menu mobile
   initMobileMenu();
-
-  // Gérer le scroll du header
   initHeaderScroll();
-
-  // Récupérer les infos TMDB et afficher la page d'accueil
+  
+  // Initialiser la popup de signalement
+  handleReportPopup();
+  
   fetchAllTMDBData().then(function() {
     renderHome();
   });
 });
 
 /* ============================================================
-   CONSTRUCTION DE LA LISTE COMPLÈTE DES MÉDIAS
+   POPUP DE SIGNALEMENT
    ============================================================ */
-function buildAllMedia() {
-  allMedia = [];
-
-  // Ajouter les films
-  if (typeof FILMS_DATA !== 'undefined') {
-    FILMS_DATA.forEach(function(film) {
-      allMedia.push({
-        title: film.title,
-        embed: film.embed,
-        section: 'films',
-        year: film.year,
-        seasons: null,
-        tmdbId: null,
-        poster: null,
-        overview: null,
-        rating: null,
-        tmdbType: 'movie'
+function handleReportPopup() {
+  const reportPopup = document.getElementById('reportPopup');
+  const reportClose = document.getElementById('reportClose');
+  const reportForm = document.getElementById('reportForm');
+  const reportSubmit = document.getElementById('reportSubmit');
+  const reportTabs = document.querySelectorAll('.report-tab');
+  
+  if (!reportPopup) return;
+  
+  // Fermer le popup
+  function closeReportPopup() {
+    reportPopup.classList.add('hidden');
+    reportForm.reset();
+  }
+  
+  if (reportClose) {
+    reportClose.addEventListener('click', closeReportPopup);
+  }
+  
+  // Fermer en cliquant en dehors
+  reportPopup.addEventListener('click', function(e) {
+    if (e.target === reportPopup) {
+      closeReportPopup();
+    }
+  });
+  
+  // Onglets Normal/Rapide
+  reportTabs.forEach(tab => {
+    tab.addEventListener('click', function() {
+      reportTabs.forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      
+      const tabType = this.dataset.tab;
+      document.querySelectorAll('.report-tab-content').forEach(content => {
+        if (content.dataset.tab === tabType) {
+          content.classList.remove('hidden');
+        } else {
+          content.classList.add('hidden');
+        }
       });
+    });
+  });
+  
+  // Submission du formulaire
+  if (reportSubmit) {
+    reportSubmit.addEventListener('click', async function() {
+      const activeTab = document.querySelector('.report-tab.active').dataset.tab;
+      const reasonSelect = document.querySelector(`[data-tab="${activeTab}"] select`);
+      const reason = reasonSelect.value;
+      
+      if (!reason) {
+        alert('Veuillez sélectionner une raison');
+        return;
+      }
+      
+      reportSubmit.disabled = true;
+      reportSubmit.textContent = 'Envoi en cours...';
+      
+      const mediaTitle = currentPlayingMedia?.title || 'Inconnu';
+      const embedUrl = currentPlayingMedia?.embed || 'Inconnu';
+      
+      // Préparer les données
+      const reportData = {
+        type: 'bug_report',
+        media: mediaTitle,
+        embed: embedUrl,
+        reason: reason,
+        reportType: activeTab,
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent
+      };
+      
+      try {
+        // Envoyer au webhook Discord
+        await sendToWebhook(reportData);
+        
+        // Message de succès
+        reportSubmit.textContent = '✓ Signalement envoyé !';
+        setTimeout(() => {
+          closeReportPopup();
+          reportSubmit.disabled = false;
+          reportSubmit.textContent = 'Envoyer le signalement';
+        }, 2000);
+      } catch (error) {
+        console.error('Erreur lors du signalement:', error);
+        reportSubmit.textContent = '✗ Erreur d\'envoi';
+        reportSubmit.disabled = false;
+        setTimeout(() => {
+          reportSubmit.textContent = 'Envoyer le signalement';
+        }, 2000);
+      }
     });
   }
+}
 
-  // Ajouter les séries
-  if (typeof SERIES_DATA !== 'undefined') {
-    SERIES_DATA.forEach(function(series) {
-      allMedia.push({
-        title: series.title,
-        embed: series.embed,
-        section: 'series',
-        year: series.year,
-        seasons: series.seasons,
-        tmdbId: null,
-        poster: null,
-        overview: null,
-        rating: null,
-        tmdbType: 'tv'
-      });
+/* ---------- Envoi au webhook Discord ---------- */
+async function sendToWebhook(reportData) {
+  // Créer un embed Discord
+  const embed = {
+    title: '🔴 Rapport de Problème - MonoFly',
+    color: 15548997, // Red
+    fields: [
+      {
+        name: '📺 Média',
+        value: reportData.media,
+        inline: true
+      },
+      {
+        name: '⚠️ Raison',
+        value: reportData.reason,
+        inline: true
+      },
+      {
+        name: '🔗 URL Embed',
+        value: `${reportData.embed}`,
+        inline: false
+      },
+      {
+        name: '📝 Type de Rapport',
+        value: reportData.reportType === 'normal' ? '⏱️ Réparation Normale' : '⚡ Réparation Rapide',
+        inline: true
+      },
+      {
+        name: '🕐 Timestamp',
+        value: reportData.timestamp,
+        inline: true
+      },
+      {
+        name: '📱 User Agent',
+        value: `\`${reportData.userAgent.substring(0, 80)}...\``,
+        inline: false
+      }
+    ],
+    footer: {
+      text: 'MonoFly - Bug Report System',
+      icon_url: 'https://cdn-icons-png.flaticon.com/512/1/1495.png'
+    },
+    timestamp: new Date().toISOString()
+  };
+  
+  const payload = {
+    content: '🚨 Nouveau rapport de problème reçu',
+    embeds: [embed]
+  };
+  
+  try {
+    const response = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
     });
-  }
-
-  // Ajouter les animés
-  if (typeof ANIMES_DATA !== 'undefined') {
-    ANIMES_DATA.forEach(function(anime) {
-      allMedia.push({
-        title: anime.title,
-        embed: anime.embed,
-        section: 'animes',
-        year: anime.year,
-        seasons: anime.seasons,
-        tmdbId: null,
-        poster: null,
-        overview: null,
-        rating: null,
-        tmdbType: 'tv'
-      });
-    });
+    
+    if (!response.ok) {
+      throw new Error(`Webhook error: ${response.status} - ${response.statusText}`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Erreur webhook:', error);
+    throw error;
   }
 }
 
@@ -130,16 +304,13 @@ function handleWelcomePopup() {
   var continueBtn = document.getElementById('popupContinue');
   var dontShowCheckbox = document.getElementById('popupDontShow');
 
-  // Vérifier si l'utilisateur a déjà cliqué "Ne plus afficher"
   if (localStorage.getItem('monofly_hide_popup') === 'true') {
     popup.classList.add('hidden');
     return;
   }
 
-  // Afficher la popup
   popup.classList.remove('hidden');
 
-  // Fermer la popup
   function closePopup() {
     if (dontShowCheckbox.checked) {
       localStorage.setItem('monofly_hide_popup', 'true');
@@ -150,7 +321,6 @@ function handleWelcomePopup() {
   closeBtn.addEventListener('click', closePopup);
   continueBtn.addEventListener('click', closePopup);
 
-  // Fermer en cliquant en dehors
   popup.addEventListener('click', function(e) {
     if (e.target === popup) {
       closePopup();
@@ -162,13 +332,11 @@ function handleWelcomePopup() {
    INTÉGRATION TMDB API
    ============================================================ */
 async function fetchTMDBData(media) {
-  // Vérifier le cache
   var cacheKey = media.title + '_' + media.year;
   if (TMDB_CACHE[cacheKey]) {
     return TMDB_CACHE[cacheKey];
   }
 
-  // Si pas de clé API, utiliser les placeholders
   if (!TMDB_API_KEY) {
     var placeholderData = {
       poster: null,
@@ -224,10 +392,67 @@ async function fetchAllTMDBData() {
 }
 
 /* ============================================================
+   CONSTRUCTION DE LA LISTE COMPLÈTE DES MÉDIAS
+   ============================================================ */
+function buildAllMedia() {
+  allMedia = [];
+
+  if (typeof FILMS_DATA !== 'undefined') {
+    FILMS_DATA.forEach(function(film) {
+      allMedia.push({
+        title: film.title,
+        embed: film.embed,
+        section: 'films',
+        year: film.year,
+        seasons: null,
+        tmdbId: null,
+        poster: null,
+        overview: null,
+        rating: null,
+        tmdbType: 'movie'
+      });
+    });
+  }
+
+  if (typeof SERIES_DATA !== 'undefined') {
+    SERIES_DATA.forEach(function(series) {
+      allMedia.push({
+        title: series.title,
+        embed: series.embed,
+        section: 'series',
+        year: series.year,
+        seasons: series.seasons,
+        tmdbId: null,
+        poster: null,
+        overview: null,
+        rating: null,
+        tmdbType: 'tv'
+      });
+    });
+  }
+
+  if (typeof ANIMES_DATA !== 'undefined') {
+    ANIMES_DATA.forEach(function(anime) {
+      allMedia.push({
+        title: anime.title,
+        embed: anime.embed,
+        section: 'animes',
+        year: anime.year,
+        seasons: anime.seasons,
+        tmdbId: null,
+        poster: null,
+        overview: null,
+        rating: null,
+        tmdbType: 'tv'
+      });
+    });
+  }
+}
+
+/* ============================================================
    NAVIGATION & FILTRES
    ============================================================ */
 function initNavigation() {
-  // Onglets desktop
   var headerTabs = document.querySelectorAll('#headerNav .nav-tab');
   headerTabs.forEach(function(tab) {
     tab.addEventListener('click', function() {
@@ -235,136 +460,94 @@ function initNavigation() {
     });
   });
 
-  // Onglets mobile
   var mobileTabs = document.querySelectorAll('#mobileNav .nav-tab');
   mobileTabs.forEach(function(tab) {
     tab.addEventListener('click', function() {
       setActiveTab(tab.dataset.tab);
-      // Fermer le menu mobile après sélection
-      closeMobileMenu();
+      document.getElementById('mobileMenu').classList.remove('visible');
+      document.getElementById('mobileMenu').classList.add('hidden');
     });
-  });
-
-  // Logo → retour accueil
-  var logoLink = document.getElementById('logoLink');
-  logoLink.addEventListener('click', function(e) {
-    e.preventDefault();
-    currentSearch = '';
-    var searchInput = document.getElementById('searchInput');
-    var mobileSearchInput = document.getElementById('mobileSearchInput');
-    if (searchInput) searchInput.value = '';
-    if (mobileSearchInput) mobileSearchInput.value = '';
-    updateSearchClearBtn();
-    setActiveTab('all');
   });
 }
 
 function setActiveTab(tab) {
   currentTab = tab;
-
-  // Mettre à jour l'UI des onglets
-  var allTabs = document.querySelectorAll('.nav-tab');
-  allTabs.forEach(function(t) {
-    if (t.dataset.tab === tab) {
-      t.classList.add('active');
-    } else {
-      t.classList.remove('active');
-    }
+  currentSearch = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('mobileSearchInput').value = '';
+  document.getElementById('searchClear').classList.add('hidden');
+  
+  document.querySelectorAll('.nav-tab').forEach(function(t) {
+    t.classList.remove('active');
   });
-
-  // Re-render le contenu
+  
+  document.querySelectorAll('[data-tab="' + tab + '"]').forEach(function(t) {
+    t.classList.add('active');
+  });
+  
   renderHome();
 }
 
 /* ============================================================
-   MOTEUR DE RECHERCHE AVEC DEBOUNCE
+   RECHERCHE
    ============================================================ */
 function initSearch() {
   var searchInput = document.getElementById('searchInput');
   var mobileSearchInput = document.getElementById('mobileSearchInput');
   var searchClear = document.getElementById('searchClear');
 
-  // Debounce de 200ms
-  var debounceTimer = null;
-
-  function handleSearch(value) {
-    currentSearch = value.trim().toLowerCase();
-    updateSearchClearBtn();
-    renderHome();
-  }
-
-  searchInput.addEventListener('input', function() {
-    clearTimeout(debounceTimer);
-    var value = this.value;
-    debounceTimer = setTimeout(function() {
-      handleSearch(value);
-      // Synchroniser la recherche mobile
-      if (mobileSearchInput) mobileSearchInput.value = value;
-    }, 200);
-  });
-
-  mobileSearchInput.addEventListener('input', function() {
-    clearTimeout(debounceTimer);
-    var value = this.value;
-    debounceTimer = setTimeout(function() {
-      handleSearch(value);
-      // Synchroniser la recherche desktop
-      if (searchInput) searchInput.value = value;
-    }, 200);
+  [searchInput, mobileSearchInput].forEach(function(input) {
+    input.addEventListener('input', function() {
+      currentSearch = this.value.toLowerCase();
+      if (currentSearch) {
+        searchClear.classList.remove('hidden');
+      } else {
+        searchClear.classList.add('hidden');
+      }
+      renderHome();
+    });
   });
 
   searchClear.addEventListener('click', function() {
-    currentSearch = '';
     searchInput.value = '';
     mobileSearchInput.value = '';
-    updateSearchClearBtn();
+    currentSearch = '';
+    searchClear.classList.add('hidden');
     renderHome();
   });
-}
-
-function updateSearchClearBtn() {
-  var searchClear = document.getElementById('searchClear');
-  if (currentSearch.length > 0) {
-    searchClear.classList.remove('hidden');
-  } else {
-    searchClear.classList.add('hidden');
-  }
 }
 
 /* ============================================================
    MENU MOBILE
    ============================================================ */
 function initMobileMenu() {
-  var menuBtn = document.getElementById('mobileMenuBtn');
+  var mobileMenuBtn = document.getElementById('mobileMenuBtn');
   var mobileMenu = document.getElementById('mobileMenu');
 
-  menuBtn.addEventListener('click', function() {
+  mobileMenuBtn.addEventListener('click', function() {
     mobileMenu.classList.toggle('hidden');
     mobileMenu.classList.toggle('visible');
   });
-}
 
-function closeMobileMenu() {
-  var mobileMenu = document.getElementById('mobileMenu');
-  mobileMenu.classList.remove('visible');
-  mobileMenu.classList.add('hidden');
+  document.addEventListener('click', function(e) {
+    if (!mobileMenu.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+      mobileMenu.classList.add('hidden');
+      mobileMenu.classList.remove('visible');
+    }
+  });
 }
 
 /* ============================================================
-   SCROLL DU HEADER
+   HEADER SCROLL
    ============================================================ */
 function initHeaderScroll() {
   var header = document.getElementById('mainHeader');
-  var lastScroll = 0;
-
   window.addEventListener('scroll', function() {
-    var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    if (scrollTop > 50) {
+    if (window.scrollY > 10) {
       header.classList.add('scrolled');
     } else {
       header.classList.remove('scrolled');
     }
-    lastScroll = scrollTop;
   });
 }
 
@@ -373,33 +556,47 @@ function initHeaderScroll() {
    ============================================================ */
 function renderHome() {
   var mainContent = document.getElementById('mainContent');
-  var filtered = getFilteredMedia();
-
   var html = '';
 
-  // Titre de section
-  var sectionLabel = currentTab === 'all' ? 'Tous les médias' :
-                     currentTab === 'films' ? 'Films' :
-                     currentTab === 'series' ? 'Séries' : 'Animés';
+  var filtered = allMedia.filter(function(m) {
+    if (currentTab !== 'all' && m.section !== currentTab) return false;
+    if (currentSearch && !m.title.toLowerCase().includes(currentSearch)) return false;
+    return true;
+  });
 
-  html += '<div class="section-title"><span class="accent-dot"></span>' + escapeHTML(sectionLabel);
-  if (currentSearch) {
-    html += ' <span style="color: var(--accent-light); font-weight: 400; font-size: 0.9rem;">— Résultats pour "' + escapeHTML(currentSearch) + '"</span>';
-  }
-  html += '</div>';
+  // Sections
+  var sections = {};
+  filtered.forEach(function(media) {
+    if (!sections[media.section]) sections[media.section] = [];
+    sections[media.section].push(media);
+  });
+
+  // Afficher les sections
+  ['tendances', 'films', 'series', 'animes'].forEach(function(section) {
+    var items = sections[section];
+    if (!items || items.length === 0) return;
+
+    var sectionTitle = {
+      'tendances': '🔥 Tendances',
+      'films': '🎬 Films',
+      'series': '📺 Séries',
+      'animes': '✨ Animés'
+    }[section];
+
+    html += '<section class="content-section">';
+    html += '  <h2>' + sectionTitle + '</h2>';
+    html += '  <div class="media-grid">';
+
+    items.forEach(function(item, idx) {
+      html += renderMediaCard(item, idx);
+    });
+
+    html += '  </div>';
+    html += '</section>';
+  });
 
   if (filtered.length === 0) {
-    html += '<div class="empty-state">';
-    html += '<div class="empty-state-icon"><i data-lucide="search-x" style="width:48px;height:48px;"></i></div>';
-    html += '<h3>Aucun résultat trouvé</h3>';
-    html += '<p>Essayez de modifier vos filtres ou votre recherche.</p>';
-    html += '</div>';
-  } else {
-    html += '<div class="media-grid">';
-    filtered.forEach(function(media, index) {
-      html += renderMediaCard(media, index);
-    });
-    html += '</div>';
+    html += '<div class="no-results"><p>Aucun résultat trouvé</p></div>';
   }
 
   mainContent.innerHTML = html;
@@ -407,166 +604,145 @@ function renderHome() {
   initCardClickHandlers();
 }
 
-/* ---------- Filtrer les médias ---------- */
-function getFilteredMedia() {
-  return allMedia.filter(function(media) {
-    // Filtre par onglet
-    if (currentTab !== 'all' && media.section !== currentTab) {
-      return false;
-    }
-    // Filtre par recherche
-    if (currentSearch) {
-      var searchInTitle = media.title.toLowerCase().indexOf(currentSearch) !== -1;
-      var searchInOverview = media.overview && media.overview.toLowerCase().indexOf(currentSearch) !== -1;
-      return searchInTitle || searchInOverview;
-    }
-    return true;
-  });
+/* ---------- Helpers de disponibilité ---------- */
+function isFilmUnavailable(media) {
+  // Un film est indisponible si son embed est vide ou absent
+  return !media.seasons && (!media.embed || media.embed.trim() === '');
 }
 
-/* ---------- Rendu d'une carte média ---------- */
-function renderMediaCard(media, index) {
-  var typeLabel = media.section === 'films' ? 'Film' :
-                  media.section === 'series' ? 'Série' : 'Animé';
-
-  var posterHtml = '';
-  if (media.poster) {
-    posterHtml = '<img src="' + escapeAttr(media.poster) + '" alt="' + escapeAttr(media.title) + '" loading="lazy" />';
-  } else {
-    // Placeholder basé sur la catégorie
-    var placeholderCategory = media.section === 'films' ? 'film' :
-                               media.section === 'series' ? 'technology' : 'abstract';
-    var seed = media.title.length + media.year;
-    posterHtml = '<img src="http://static.photos/' + placeholderCategory + '/200x200/' + seed + '" alt="' + escapeAttr(media.title) + '" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=poster-placeholder><i data-lucide=film style=width:2rem;height:2rem></i></div>\'" />';
+function hasUnavailableEpisode(media) {
+  // Série/animé : retourne vrai si AU MOINS 1 épisode a un embed vide
+  if (!media.seasons) return false;
+  for (var s = 0; s < media.seasons.length; s++) {
+    var eps = media.seasons[s].episodes || [];
+    for (var e = 0; e < eps.length; e++) {
+      if (!eps[e].embed || eps[e].embed.trim() === '') return true;
+    }
   }
+  return false;
+}
 
-  var ratingHtml = '';
-  if (media.rating) {
-    ratingHtml = '<span class="media-card-rating"><i data-lucide="star" style="width:12px;height:12px;"></i>' + escapeHTML(media.rating) + '</span>';
-  }
+/* ---------- Rendu des cartes média ---------- */
+function renderMediaCard(media, idx) {
+  var posterUrl = media.poster || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 300 450%22%3E%3Crect fill=%22%231a1a24%22 width=%22300%22 height=%22450%22/%3E%3C/svg%3E';
 
-  var delay = Math.min(index * 0.05, 0.5);
+  var filmUnavailable = isFilmUnavailable(media);
+  var episodeUnavailable = hasUnavailableEpisode(media);
+
+  var cardClass = 'media-card';
+  if (filmUnavailable) cardClass += ' media-card--film-unavailable';
 
   var html = '';
-  html += '<div class="media-card" data-media-index="' + index + '" style="animation-delay: ' + delay + 's">';
+  html += '<div class="' + cardClass + '" data-media-index="' + allMedia.indexOf(media) + '" style="animation-delay: ' + (idx * 0.05) + 's">';
   html += '  <div class="media-card-poster">';
-  html += '    ' + posterHtml;
-  html += '    ' + ratingHtml;
-  html += '    <span class="media-card-type">' + escapeHTML(typeLabel) + '</span>';
-  html += '    <div class="media-card-overlay">';
-  html += '      <div class="media-card-play"><i data-lucide="play" style="width:24px;height:24px;"></i></div>';
-  html += '    </div>';
+  html += '    <img src="' + escapeAttr(posterUrl) + '" alt="' + escapeAttr(media.title) + '" />';
+
+  if (media.rating) {
+    html += '    <div class="media-rating">' + escapeHTML(media.rating) + '</div>';
+  }
+
+  // Film indisponible : overlay "Indisponible" visible au survol
+  if (filmUnavailable) {
+    html += '    <div class="media-card-unavailable-overlay">';
+    html += '      <span>⚠️ Indisponible</span>';
+    html += '    </div>';
+  }
+
+  // Série/animé avec au moins 1 épisode manquant : badge rouge permanent
+  if (episodeUnavailable) {
+    html += '    <div class="media-card-episode-badge">⚠️ Ep. indisponible</div>';
+  }
+
   html += '  </div>';
   html += '  <div class="media-card-info">';
   html += '    <div class="media-card-title">' + escapeHTML(media.title) + '</div>';
-  html += '    <div class="media-card-meta">';
-  html += '      <span>' + escapeHTML(String(media.year)) + '</span>';
-  if (media.seasons) {
-    var totalEpisodes = 0;
-    media.seasons.forEach(function(s) { totalEpisodes += s.episodes.length; });
-    html += '      <span>•</span>';
-    html += '      <span>' + media.seasons.length + ' saison' + (media.seasons.length > 1 ? 's' : '') + '</span>';
-    html += '      <span>•</span>';
-    html += '      <span>' + totalEpisodes + ' épisodes</span>';
-  }
-  html += '    </div>';
+  html += '    <div class="media-card-meta">' + escapeHTML(media.year) + '</div>';
   html += '  </div>';
   html += '</div>';
 
   return html;
 }
 
-/* ---------- Gestion des clics sur les cartes ---------- */
+/* ---------- Handlers des cartes ---------- */
 function initCardClickHandlers() {
   var cards = document.querySelectorAll('.media-card');
   cards.forEach(function(card) {
     card.addEventListener('click', function() {
+      // Bloquer le clic sur les films indisponibles
+      if (card.classList.contains('media-card--film-unavailable')) return;
       var index = parseInt(card.dataset.mediaIndex, 10);
-      var filtered = getFilteredMedia();
-      if (filtered[index]) {
-        renderPlayer(filtered[index]);
+      if (allMedia[index]) {
+        renderPlayerPage(allMedia[index]);
       }
     });
   });
 }
 
 /* ============================================================
-   RENDU DE LA VUE PLAYER
+   PAGE DU LECTEUR
    ============================================================ */
-function renderPlayer(media) {
-  var mainContent = document.getElementById('mainContent');
-
-  // Mettre à jour l'état du média en cours
+async function renderPlayerPage(media) {
   currentPlayingMedia = media;
-  currentPlayingSeason = null;
-  currentPlayingEpisode = null;
-
+  var mainContent = document.getElementById('mainContent');
+  
   // Déterminer l'embed initial
-  var initialEmbed = media.embed;
-
-  // Type du média
-  var typeLabel = media.section === 'films' ? 'Film' :
-                  media.section === 'series' ? 'Série' : 'Animé';
-
-  // Synopsis
-  var overviewText = media.overview || 'Synopsis non disponible.';
-
-  // Poster
-  var posterSrc = media.poster;
-  if (!posterSrc) {
-    var placeholderCategory = media.section === 'films' ? 'film' :
-                               media.section === 'series' ? 'technology' : 'abstract';
-    var seed = media.title.length + media.year;
-    posterSrc = 'http://static.photos/' + placeholderCategory + '/320x240/' + seed;
+  var initialEmbed = null;
+  
+  if (media.seasons && media.seasons.length > 0 && media.seasons[0].episodes && media.seasons[0].episodes.length > 0) {
+    initialEmbed = media.seasons[0].episodes[0].embed;
+  } else {
+    initialEmbed = media.embed;
   }
+
+  // Ne pas vérifier les liens - afficher directement
+  // La vérification se fait en arrière-plan sans bloquer
 
   var html = '';
-  html += '<div class="player-view">';
-  html += '  <button class="player-back" id="playerBack">';
-  html += '    <i data-lucide="arrow-left" style="width:18px;height:18px;"></i>';
-  html += '    Retour';
-  html += '  </button>';
+  html += '<div class="player-container">';
 
-  // Bannière
-  html += '  <div class="player-banner">';
+  // Bannière avec infos
+  html += '  <div class="player-banner" style="background-image: url(' + escapeAttr(media.poster || 'none') + ')">';
+  html += '    <button class="player-back" id="playerBack"><i data-lucide="arrow-left" style="width:20px;height:20px;"></i>Retour</button>';
   html += '    <div class="player-banner-poster">';
-  html += '      <img src="' + escapeAttr(posterSrc) + '" alt="' + escapeAttr(media.title) + '" />';
+  html += '      <img src="' + escapeAttr(media.poster || '') + '" alt="' + escapeAttr(media.title) + '" />';
   html += '    </div>';
-  html += '    <div class="player-banner-info">';
-  html += '      <h1 class="player-banner-title">' + escapeHTML(media.title) + '</h1>';
+  html += '    <div class="player-banner-content">';
   html += '      <div class="player-banner-meta">';
-  html += '        <span>' + escapeHTML(String(media.year)) + '</span>';
-  html += '        <span>•</span>';
-  html += '        <span>' + escapeHTML(typeLabel) + '</span>';
+  
   if (media.rating) {
-    html += '        <span class="badge-rating"><i data-lucide="star" style="width:14px;height:14px;"></i>' + escapeHTML(media.rating) + '</span>';
+    html += '        <span class="badge-rating"><i data-lucide="star" style="width:14px;height:14px;"></i>' + escapeHTML(media.rating) + '/10</span>';
   }
-  if (media.seasons) {
-    var totalEp = 0;
-    media.seasons.forEach(function(s) { totalEp += s.episodes.length; });
-    html += '        <span>•</span>';
-    html += '        <span>' + media.seasons.length + ' saison' + (media.seasons.length > 1 ? 's' : '') + '</span>';
-  }
+  
+  html += '        <span class="badge-year">' + escapeHTML(media.year) + '</span>';
   html += '      </div>';
+  html += '      <h1 class="player-banner-title">' + escapeHTML(media.title) + '</h1>';
+  
+  var overviewText = media.overview || 'Aucune description disponible.';
   html += '      <p class="player-banner-overview">' + escapeHTML(overviewText) + '</p>';
   html += '      <div class="player-banner-actions">';
+  
   if (media.seasons && media.seasons.length > 0) {
-    // Séries / Animés : bouton pour lancer le premier épisode
     html += '        <button class="btn-watch" id="btnWatchFirst"><i data-lucide="play" style="width:18px;height:18px;"></i>Regarder S1 E1</button>';
   } else {
-    // Films : bouton Regarder
     html += '        <button class="btn-watch" id="btnWatchFilm"><i data-lucide="play" style="width:18px;height:18px;"></i>Regarder</button>';
   }
+  
   html += '      </div>';
   html += '    </div>';
   html += '  </div>';
 
-  // Iframe du lecteur
+  // Iframe du lecteur - Afficher par défaut
   html += '  <div class="player-iframe-wrapper" id="playerIframeWrapper">';
   html += '    <iframe id="videoPlayer" src="' + escapeAttr(initialEmbed) + '" allowfullscreen allow="autoplay; encrypted-media; fullscreen"></iframe>';
   html += '  </div>';
 
-  // Saisons & Épisodes (pour les séries et animés)
+  // Bouton "Signaler un problème" - Toujours visible
+  html += '  <button class="btn-report-problem" id="btnReportProblem">';
+  html += '    <i data-lucide="alert-triangle" style="width:18px;height:18px;"></i>';
+  html += '    <span>Signaler un problème</span>';
+  html += '  </button>';
+
+  // Saisons & Épisodes
   if (media.seasons && media.seasons.length > 0) {
     html += renderSeasonsAndEpisodes(media);
   }
@@ -579,10 +755,8 @@ function renderPlayer(media) {
   mainContent.innerHTML = html;
   lucide.createIcons();
 
-  // Scroll en haut
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Initialiser les handlers du player
   initPlayerHandlers(media);
 }
 
@@ -592,7 +766,6 @@ function renderSeasonsAndEpisodes(media) {
   html += '<section class="seasons-section">';
   html += '  <h3><i data-lucide="list" style="width:20px;height:20px;"></i>Épisodes</h3>';
 
-  // Onglets de saisons
   html += '  <div class="season-tabs">';
   media.seasons.forEach(function(season, i) {
     var activeClass = i === 0 ? ' active' : '';
@@ -600,12 +773,15 @@ function renderSeasonsAndEpisodes(media) {
   });
   html += '  </div>';
 
-  // Listes d'épisodes (seule la saison active est visible)
   media.seasons.forEach(function(season, i) {
     var hiddenClass = i === 0 ? '' : ' hidden';
     html += '  <div class="episodes-list season-content' + hiddenClass + '" data-season-content="' + i + '">';
     season.episodes.forEach(function(ep) {
-      html += '    <div class="episode-item" data-embed="' + escapeAttr(ep.embed) + '" data-ep-title="' + escapeAttr(ep.title) + '">';
+      var epUnavailable = !ep.embed || ep.embed.trim() === '';
+      var itemClass = 'episode-item' + (epUnavailable ? ' episode-item--unavailable' : '');
+      var embedAttr = epUnavailable ? '' : escapeAttr(ep.embed);
+
+      html += '    <div class="' + itemClass + '" data-embed="' + embedAttr + '" data-ep-title="' + escapeAttr(ep.title) + '">';
       html += '      <div class="episode-number">' + ep.episodeNumber + '</div>';
       html += '      <div class="episode-info">';
       html += '        <div class="episode-title">' + escapeHTML(ep.title) + '</div>';
@@ -613,12 +789,19 @@ function renderSeasonsAndEpisodes(media) {
       html += '          <span>Saison ' + season.seasonNumber + '</span>';
       html += '          <span>•</span>';
       html += '          <span>' + escapeHTML(ep.duration) + '</span>';
+      if (epUnavailable) {
+        html += '          <span class="episode-unavailable-tag">⚠️ Indisponible</span>';
+      }
       html += '        </div>';
       if (ep.overview) {
         html += '        <div class="episode-overview">' + escapeHTML(ep.overview) + '</div>';
       }
       html += '      </div>';
-      html += '      <button class="episode-play-btn" data-embed="' + escapeAttr(ep.embed) + '" data-ep-title="' + escapeAttr(ep.title) + '">Regarder</button>';
+      if (epUnavailable) {
+        html += '      <button class="episode-play-btn episode-play-btn--unavailable" disabled>Indisponible</button>';
+      } else {
+        html += '      <button class="episode-play-btn" data-embed="' + escapeAttr(ep.embed) + '" data-ep-title="' + escapeAttr(ep.title) + '">Regarder</button>';
+      }
       html += '    </div>';
     });
     html += '  </div>';
@@ -667,12 +850,10 @@ function initPlayerHandlers(media) {
   var btnWatchFilm = document.getElementById('btnWatchFilm');
   if (btnWatchFilm) {
     btnWatchFilm.addEventListener('click', function() {
-      // Scroll vers le lecteur
       var wrapper = document.getElementById('playerIframeWrapper');
       if (wrapper) {
         wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-      // Marquer comme "En cours"
       btnWatchFilm.classList.add('playing');
       btnWatchFilm.innerHTML = '<i data-lucide="pause" style="width:18px;height:18px;"></i>En cours';
       lucide.createIcons();
@@ -690,15 +871,21 @@ function initPlayerHandlers(media) {
     });
   }
 
+  // Bouton "Signaler un problème"
+  var btnReportProblem = document.getElementById('btnReportProblem');
+  if (btnReportProblem) {
+    btnReportProblem.addEventListener('click', function() {
+      document.getElementById('reportPopup').classList.remove('hidden');
+    });
+  }
+
   // Onglets de saisons
   var seasonTabs = document.querySelectorAll('.season-tab');
   seasonTabs.forEach(function(tab) {
     tab.addEventListener('click', function() {
       var seasonIndex = parseInt(tab.dataset.season, 10);
-      // Mettre à jour l'onglet actif
       seasonTabs.forEach(function(t) { t.classList.remove('active'); });
       tab.classList.add('active');
-      // Afficher la bonne saison
       document.querySelectorAll('.season-content').forEach(function(content) {
         if (parseInt(content.dataset.seasonContent, 10) === seasonIndex) {
           content.classList.remove('hidden');
@@ -709,19 +896,21 @@ function initPlayerHandlers(media) {
     });
   });
 
-  // Clics sur les épisodes (délégation d'événement)
+  // Clics sur les épisodes
   var episodesList = document.querySelectorAll('.episodes-list');
   episodesList.forEach(function(list) {
     list.addEventListener('click', function(e) {
-      // Trouver le bouton ou l'item cliqué
       var playBtn = e.target.closest('.episode-play-btn');
       var episodeItem = e.target.closest('.episode-item');
       var target = playBtn || episodeItem;
       if (!target) return;
 
+      // Ignorer les épisodes indisponibles
+      if (episodeItem && episodeItem.classList.contains('episode-item--unavailable')) return;
+      if (playBtn && playBtn.classList.contains('episode-play-btn--unavailable')) return;
+
       var embed = target.dataset.embed;
       if (embed) {
-        // Déterminer la saison et l'épisode
         var seasonContent = target.closest('.season-content');
         var seasonIndex = seasonContent ? parseInt(seasonContent.dataset.seasonContent, 10) : 0;
         var epIndex = 0;
@@ -734,7 +923,6 @@ function initPlayerHandlers(media) {
     });
   });
 
-  // Gestion des clics sur les cartes similaires
   initCardClickHandlers();
 }
 
@@ -743,22 +931,18 @@ function loadEpisode(embedUrl, media, seasonIdx, epIdx) {
   var videoPlayer = document.getElementById('videoPlayer');
   if (!videoPlayer) return;
 
-  // Mettre à jour l'iframe
   videoPlayer.src = embedUrl;
 
-  // Scroll vers le lecteur
   var wrapper = document.getElementById('playerIframeWrapper');
   if (wrapper) {
     wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  // Retirer la classe .playing de tous les boutons d'épisode
   document.querySelectorAll('.episode-play-btn').forEach(function(btn) {
     btn.classList.remove('playing');
     btn.innerHTML = 'Regarder';
   });
 
-  // Ajouter la classe .playing au bouton de l'épisode en cours
   var seasonContent = document.querySelector('.season-content[data-season-content="' + seasonIdx + '"]');
   if (seasonContent) {
     var episodeItems = seasonContent.querySelectorAll('.episode-item');
@@ -771,7 +955,6 @@ function loadEpisode(embedUrl, media, seasonIdx, epIdx) {
     }
   }
 
-  // Mettre à jour le bouton principal "Regarder"
   var mainWatchBtn = document.getElementById('btnWatchFirst');
   if (mainWatchBtn) {
     mainWatchBtn.classList.add('playing');
@@ -781,7 +964,6 @@ function loadEpisode(embedUrl, media, seasonIdx, epIdx) {
     lucide.createIcons();
   }
 
-  // Mettre à jour l'état global
   currentPlayingSeason = seasonIdx;
   currentPlayingEpisode = epIdx;
 }
