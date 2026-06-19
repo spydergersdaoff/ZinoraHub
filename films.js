@@ -13,7 +13,7 @@ const FILMS_DATA = [
     },    
     {
         title: "Scream",
-        embed: "https://uqload.is/embed-cpnlk95lren0.html",
+        embed: "",
         section: "tendances",
         year: "1996"
     },
@@ -43,7 +43,7 @@ const FILMS_DATA = [
     },
     {
         title: "Scream Girl",
-        embed: "https://uqload.is/embed-ljp1xrpw1ijh.html",
+        embed: "",
         section: "tendances",
         year: "2015"
     },
@@ -76,5 +76,35 @@ const FILMS_DATA = [
         embed: "https://vidzy.live/embed-s5lch1p044zj.html",
         section: "tendances",
         year: "2010"
+    },
+    {
+        "title": "Scary Movie",
+        "embed": "https://vidzy.live/embed-w4gr0540iwpl.html",
+        "section": "tendances",
+        "year": "2026"
+    },
+    {
+        "title": "Scary Movie",
+        "embed": "https://uqload.is/embed-17mx23oyh63g.html",
+        "section": "tendances",
+        "year": "2000"
+    },
+    {
+        "title": "Scary Movie 2",
+        "embed": "https://vidzy.live/embed-bjl69xke74kr.html",
+        "section": "tendances",
+        "year": "2001"
+    },
+    {
+        "title": "Scary Movie 3",
+        "embed": "https://vidzy.live/embed-gx8p43g2ei8k.html",
+        "section": "tendances",
+        "year": "2003"
+    },
+    {
+        "title": "Scary Movie 4",
+        "embed": "https://vidzy.live/embed-qcxm0ryue0gh.html",
+        "section": "tendances",
+        "year": "2006"
     }
 ];
