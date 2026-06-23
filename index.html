@@ -46,43 +46,511 @@
     }
   </script>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    .btn-switch-header {
+      padding: 10px 20px;
+      background-color: #1a1a24;
+      color: white;
+      border: 1px solid #2a2a3a;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: bold;
+      text-decoration: none;
+      font-size: 14px;
+      transition: background 0.2s, border-color 0.2s;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+
+    .btn-switch-header:hover {
+      background-color: #2a2a3a;
+      border-color: #a855f7;
+    }
+
+    /* Styles pour le popup des nouveaux contenus */
+    .new-content-popup {
+      position: relative;
+      background: linear-gradient(135deg, #13131a 0%, #1a1a24 100%);
+      border: 2px solid #a855f7;
+    }
+
+    .new-content-icon {
+      color: #a855f7;
+      animation: pulse-icon 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-icon {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+      }
+    }
+
+    .new-content-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #a855f7, #c084fc);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .new-content-features {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin: 20px 0;
+      padding: 15px;
+      background-color: rgba(168, 85, 247, 0.1);
+      border-radius: 12px;
+      border: 1px solid rgba(168, 85, 247, 0.2);
+    }
+
+    .feature-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .feature-item i {
+      color: #a855f7;
+      width: 20px;
+      height: 20px;
+    }
+
+    .feature-item span {
+      text-align: center;
+    }
+
+    .new-content-btn {
+      background: linear-gradient(135deg, #a855f7, #7c3aed) !important;
+      border: none !important;
+    }
+
+    .new-content-btn:hover {
+      background: linear-gradient(135deg, #9333ea, #6d28d9) !important;
+      transform: translateY(-2px);
+    }
+
+    @media (max-width: 640px) {
+      .new-content-features {
+        grid-template-columns: 1fr;
+      }
+
+      .new-content-badge {
+        font-size: 10px;
+        padding: 3px 10px;
+      }
+    }
+
+    .welcome-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #a855f7, #c084fc);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    /* Container pour les 2 boutons */
+    .popup-buttons-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .popup-btn-primary,
+    .popup-btn-secondary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .popup-btn-primary {
+      background: linear-gradient(135deg, #a855f7, #7c3aed);
+      color: white;
+    }
+
+    .popup-btn-primary:hover {
+      background: linear-gradient(135deg, #9333ea, #6d28d9);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(168, 85, 247, 0.3);
+    }
+
+    .popup-btn-secondary {
+      background-color: #1a1a24;
+      color: #ffffff;
+      border: 2px solid #2a2a3a;
+    }
+
+    .popup-btn-secondary:hover {
+      background-color: #2a2a3a;
+      border-color: #a855f7;
+      color: #c084fc;
+    }
+
+    @media (max-width: 640px) {
+      .popup-buttons-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ===== STYLES POUR LA PROGRESSION ===== */
+    .popup-stepped {
+      position: relative;
+    }
+
+    .progression-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #2a2a3a;
+    }
+
+    .progression-step {
+      flex: 1;
+      position: relative;
+      height: 6px;
+      background-color: #1a1a24;
+      border-radius: 3px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .progression-step.active {
+      background: linear-gradient(90deg, #a855f7, #c084fc);
+    }
+
+    .progression-step.completed {
+      background: #7c3aed;
+    }
+
+    .progression-line {
+      width: 0%;
+      height: 100%;
+      background: inherit;
+      animation: fillBar 0.6s ease-out forwards;
+    }
+
+    .progression-step.active .progression-line {
+      animation: fillBar 0.6s ease-out forwards;
+    }
+
+    @keyframes fillBar {
+      0% {
+        width: 0%;
+      }
+      100% {
+        width: 100%;
+      }
+    }
+
+    /* Contenu des étapes */
+    .step-content {
+      display: none;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .step-content.active {
+      display: block;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Boutons d'étape */
+    .step-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .step-buttons.three-buttons {
+      grid-template-columns: repeat(3, 1fr);
+      display: grid;
+    }
+
+    /* Nouveau layout des boutons */
+    .step-buttons-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 25px;
+    }
+
+    .step-buttons-top {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .popup-btn-next,
+    .popup-btn-back {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .popup-btn-next {
+      background: linear-gradient(135deg, #a855f7, #7c3aed);
+      color: white;
+      flex: 1;
+    }
+
+    .popup-btn-next:hover {
+      background: linear-gradient(135deg, #9333ea, #6d28d9);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(168, 85, 247, 0.3);
+    }
+
+    .popup-btn-back {
+      background-color: #1a1a24;
+      color: #ffffff;
+      border: 2px solid #2a2a3a;
+      padding: 10px 16px;
+      font-size: 13px;
+    }
+
+    .popup-btn-back:hover {
+      background-color: #2a2a3a;
+      border-color: #a855f7;
+      color: #c084fc;
+    }
+
+    .popup-btn-secondary {
+      background-color: #1a1a24;
+      color: #ffffff;
+      border: 2px solid #2a2a3a;
+      padding: 10px 16px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .popup-btn-secondary:hover {
+      background-color: #2a2a3a;
+      border-color: #a855f7;
+      color: #c084fc;
+    }
+
+    /* Grand bouton principal en bas */
+    .popup-btn-primary-large {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 14px 24px;
+      background: linear-gradient(135deg, #a855f7, #7c3aed);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      width: 100%;
+      box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+    }
+
+    .popup-btn-primary-large:hover {
+      background: linear-gradient(135deg, #9333ea, #6d28d9);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(168, 85, 247, 0.4);
+    }
+
+    .popup-btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .popup-btn-primary {
+      background: linear-gradient(135deg, #a855f7, #7c3aed);
+      color: white;
+    }
+
+    .popup-btn-primary:hover {
+      background: linear-gradient(135deg, #9333ea, #6d28d9);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(168, 85, 247, 0.3);
+    }
+
+    @media (max-width: 768px) {
+      .step-buttons-top {
+        grid-template-columns: 1fr;
+      }
+
+      .popup-btn-next {
+        flex: auto;
+      }
+    }
+  </style>
 </head>
 <body class="bg-mono-bg text-mono-text-primary font-sans min-h-screen">
 
   <!-- ====== POPUP ANTI-PUB / BIENVENUE ====== -->
   <div id="welcomePopup" class="popup-overlay hidden">
-    <div class="popup-container">
-      <button id="popupClose" class="popup-close" aria-label="Fermer">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
-      <div class="popup-icon">
-        <i data-lucide="shield-check" class="w-10 h-10"></i>
+    <div class="popup-container popup-stepped">
+      <!-- Barre de progression -->
+      <div class="progression-bar">
+        <div class="progression-step active" data-step="1">
+          <div class="progression-line"></div>
+        </div>
+        <div class="progression-step" data-step="2">
+          <div class="progression-line"></div>
+        </div>
       </div>
-      <h2 class="popup-title">Bienvenue sur MonoFly</h2>
-      <p class="popup-text">
-        Pour une expérience optimale et sans publicités intrusives, nous vous recommandons vivement d'utiliser un bloqueur de publicités. Les lecteurs externes peuvent ouvrir des fenêtres indésirables.
-      </p>
-      <div class="popup-links">
-        <a href="https://ublockorigin.com/" target="_blank" rel="noopener noreferrer" class="popup-link">
-          <i data-lucide="shield" class="w-5 h-5"></i>
-          <span>uBlock Origin</span>
-        </a>
-        <a href="https://adguard.com/" target="_blank" rel="noopener noreferrer" class="popup-link">
-          <i data-lucide="shield-half" class="w-5 h-5"></i>
-          <span>AdGuard</span>
-        </a>
-        <a href="https://brave.com/" target="_blank" rel="noopener noreferrer" class="popup-link">
-          <i data-lucide="globe" class="w-5 h-5"></i>
-          <span>Brave Browser</span>
-        </a>
+
+      <!-- ÉTAPE 1 -->
+      <div class="step-content active" data-step="1">
+        <button id="popupClose" class="popup-close" aria-label="Fermer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <div class="popup-icon">
+          <i data-lucide="shield-check" class="w-10 h-10"></i>
+        </div>
+        <div class="welcome-badge">ÉTAPE 1</div>
+        <h2 class="popup-title">Bienvenue sur MonoFly</h2>
+        <p class="popup-text">
+          Pour une expérience optimale et sans publicités intrusives, nous vous recommandons vivement d'utiliser un bloqueur de publicités. Les lecteurs externes peuvent ouvrir des fenêtres indésirables.
+        </p>
+        <div class="popup-links">
+          <a href="https://ublockorigin.com/" target="_blank" rel="noopener noreferrer" class="popup-link">
+            <i data-lucide="shield" class="w-5 h-5"></i>
+            <span>uBlock Origin</span>
+          </a>
+          <a href="https://adguard.com/" target="_blank" rel="noopener noreferrer" class="popup-link">
+            <i data-lucide="shield-half" class="w-5 h-5"></i>
+            <span>AdGuard</span>
+          </a>
+          <a href="https://brave.com/" target="_blank" rel="noopener noreferrer" class="popup-link">
+            <i data-lucide="globe" class="w-5 h-5"></i>
+            <span>Brave Browser</span>
+          </a>
+        </div>
+        
+        <div class="step-buttons">
+          <button id="popupContinue" class="popup-btn-next">
+            Continuer
+            <i data-lucide="arrow-right" style="width: 18px; height: 18px;"></i>
+          </button>
+        </div>
       </div>
-      <label class="popup-dont-show">
-        <input type="checkbox" id="popupDontShow" />
-        <span>Ne plus afficher ce message</span>
-      </label>
-      <button id="popupContinue" class="popup-continue">
-        Continuer vers MonoFly
-      </button>
+
+      <!-- ÉTAPE 2 -->
+      <div class="step-content" data-step="2">
+        <button id="newContentClose" class="popup-close" aria-label="Fermer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <div class="popup-icon new-content-icon">
+          <i data-lucide="sparkles" class="w-10 h-10"></i>
+        </div>
+        <div class="new-content-badge">ÉTAPE 2</div>
+        <h2 class="popup-title">MonoFly News — Exclusivités!</h2>
+        <p class="popup-text">
+          Découvrez tous les nouveaux films et séries qui viennent d'arriver en version VO. Des contenus exclusifs et inédits vous attendent!
+        </p>
+        
+        <div class="new-content-features">
+          <div class="feature-item">
+            <i data-lucide="film" class="w-5 h-5"></i>
+            <span>Films exclusifs</span>
+          </div>
+          <div class="feature-item">
+            <i data-lucide="tv" class="w-5 h-5"></i>
+            <span>Séries inédites</span>
+          </div>
+          <div class="feature-item">
+            <i data-lucide="zap" class="w-5 h-5"></i>
+            <span>Mises à jour rapides</span>
+          </div>
+        </div>
+
+        <label class="popup-dont-show">
+          <input type="checkbox" id="newContentDontShow" />
+          <span>Ne plus afficher cette étape</span>
+        </label>
+        
+        <div class="step-buttons-wrapper">
+          <div class="step-buttons-top">
+            <button id="stepBack" class="popup-btn-back">
+              <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i>
+              <span>Revenir</span>
+            </button>
+            <button id="stayOnVF" class="popup-btn-secondary">
+              <i data-lucide="home" style="width: 18px; height: 18px;"></i>
+              <span>Rester sur MonoFly</span>
+            </button>
+          </div>
+          <a href="new.html" class="popup-btn-primary-large">
+            <i data-lucide="play-circle" style="width: 20px; height: 20px;"></i>
+            <span>Accéder à MonoFly News</span>
+          </a>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -148,6 +616,54 @@
     </div>
   </div>
 
+  <!-- ====== POPUP NOUVEAU CONTENU DISPONIBLE ====== -->
+  <div id="newContentPopup" class="popup-overlay hidden">
+    <div class="popup-container new-content-popup">
+      <button id="newContentClose" class="popup-close" aria-label="Fermer">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <div class="popup-icon new-content-icon">
+        <i data-lucide="sparkles" class="w-10 h-10"></i>
+      </div>
+      <div class="new-content-badge">ÉTAPE 2</div>
+      <h2 class="popup-title">MonoFly News — Exclusivités!</h2>
+      <p class="popup-text">
+        Découvrez tous les nouveaux films et séries qui viennent d'arriver en version VO. Des contenus exclusifs et inédits vous attendent!
+      </p>
+      
+      <div class="new-content-features">
+        <div class="feature-item">
+          <i data-lucide="film" class="w-5 h-5"></i>
+          <span>Films exclusifs</span>
+        </div>
+        <div class="feature-item">
+          <i data-lucide="tv" class="w-5 h-5"></i>
+          <span>Séries inédites</span>
+        </div>
+        <div class="feature-item">
+          <i data-lucide="zap" class="w-5 h-5"></i>
+          <span>Mises à jour rapides</span>
+        </div>
+      </div>
+
+      <label class="popup-dont-show">
+        <input type="checkbox" id="newContentDontShow" />
+        <span>Ne plus afficher cette étape</span>
+      </label>
+      
+      <div class="popup-buttons-container">
+        <button id="stayOnVF" class="popup-btn-secondary">
+          <i data-lucide="home" style="width: 18px; height: 18px;"></i>
+          <span>Rester sur MonoFly VF</span>
+        </button>
+        <a href="new.html" class="popup-btn-primary">
+          <i data-lucide="play-circle" style="width: 18px; height: 18px;"></i>
+          <span>Aller à MonoFly News</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
   <!-- ====== EN-TÊTE FIXE FLOUTÉ ====== -->
   <header id="mainHeader" class="app-header">
     <div class="header-inner">
@@ -182,6 +698,10 @@
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
+      <a href="new.html" class="btn-switch-header">
+        <span>MonoFly</span>
+        <span class="text-mono-accent"> VO</span>
+      </a>
       <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Menu">
         <i data-lucide="menu" class="w-6 h-6"></i>
       </button>
@@ -240,5 +760,94 @@
   <script src="animes.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="script.js"></script>
+  <script>
+    // Gestion des popups avec navigation à 2 étapes
+    const welcomePopup = document.getElementById('welcomePopup');
+    const popupClose = document.getElementById('popupClose');
+    const newContentClose = document.getElementById('newContentClose');
+    const popupContinue = document.getElementById('popupContinue');
+    const stepBack = document.getElementById('stepBack');
+    const stayOnVF = document.getElementById('stayOnVF');
+    const newContentDontShow = document.getElementById('newContentDontShow');
+
+    let currentStep = 1;
+
+    // Afficher le popup au chargement
+    window.addEventListener('load', () => {
+      const dontShowBoth = localStorage.getItem('dontShowBothSteps');
+      if (!dontShowBoth) {
+        welcomePopup.classList.remove('hidden');
+        currentStep = 1;
+        updateProgression();
+      }
+    });
+
+    // Fonction pour changer d'étape
+    function goToStep(step) {
+      const stepContents = document.querySelectorAll('.step-content');
+      const progressionSteps = document.querySelectorAll('.progression-step');
+      
+      stepContents.forEach(el => el.classList.remove('active'));
+      progressionSteps.forEach(el => {
+        el.classList.remove('active');
+        el.classList.remove('completed');
+      });
+
+      // Marquer les étapes complétées
+      for (let i = 1; i < step; i++) {
+        progressionSteps[i - 1].classList.add('completed');
+      }
+
+      // Activer l'étape actuelle
+      const activeStep = document.querySelector(`.step-content[data-step="${step}"]`);
+      if (activeStep) {
+        activeStep.classList.add('active');
+      }
+
+      const activeProgress = document.querySelector(`.progression-step[data-step="${step}"]`);
+      if (activeProgress) {
+        activeProgress.classList.add('active');
+      }
+
+      currentStep = step;
+    }
+
+    function updateProgression() {
+      goToStep(currentStep);
+    }
+
+    // Bouton continuer vers étape 2
+    popupContinue.addEventListener('click', () => {
+      currentStep = 2;
+      updateProgression();
+    });
+
+    // Bouton revenir en arrière
+    stepBack.addEventListener('click', () => {
+      currentStep = 1;
+      updateProgression();
+    });
+
+    // Bouton rester sur MonoFly
+    stayOnVF.addEventListener('click', closePopup);
+
+    // Bouton fermer (X)
+    popupClose.addEventListener('click', closePopup);
+    newContentClose.addEventListener('click', closePopup);
+
+    function closePopup() {
+      welcomePopup.classList.add('hidden');
+      if (newContentDontShow.checked) {
+        localStorage.setItem('dontShowBothSteps', 'true');
+      }
+    }
+
+    // Fermer en cliquant sur l'overlay
+    welcomePopup.addEventListener('click', (e) => {
+      if (e.target === welcomePopup) {
+        closePopup();
+      }
+    });
+  </script>
 </body>
 </html>
