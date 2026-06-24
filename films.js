@@ -6,7 +6,7 @@ const FILMS_DATA = [
         year: "2026"
     },
     {
-        title: "Toy Story 5 (HDCAM)",
+        title: "Toy Story 5",
         embed: "https://vidzy.live/embed-vcklx3t5eove.html",
         section: "tendances",
         year: "2026"
