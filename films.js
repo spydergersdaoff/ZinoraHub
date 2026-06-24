@@ -4,7 +4,13 @@ const FILMS_DATA = [
         embed: "https://vidzy.live/embed-8ffjtfszsbt8.html",
         section: "tendances",
         year: "2026"
-    },    
+    },
+    {
+        title: "Toy Story 5 (HDCAM)",
+        embed: "https://vidzy.live/embed-vcklx3t5eove.html",
+        section: "tendances",
+        year: "2026"
+    },  
     {
         title: "Scream",
         embed: "",
